@@ -1,14 +1,14 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import LoginPage from "./Components/LoginPage";
+import Login from "./pages/Login";
+import LoginPassword from "./pages/LoginPassword";
 
-function App() {
+export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<LoginPage />} />
+        <Route path="/" element={<Login />} />
+        <Route path="/password" element={<LoginPassword />} />
       </Routes>
     </BrowserRouter>
   );
 }
-
-export default App;
