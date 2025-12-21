@@ -2,15 +2,15 @@ import axios from "axios";
 
 const API_URL = "http://localhost:5000/auth";
 
-const checkRegister = (registerNumber) => {
-  return axios.post(`${API_URL}/check-register`, { registerNumber });
+const checkEmail = (email) => {
+  return axios.post(`${API_URL}/check-email`, { email });
 };
 
-const loginUser = (registerNumber, password) => {
+const loginUser = (email, password) => {
   return axios.post(`${API_URL}/login`, {
-    registerNumber,
-    password
+    email,
+    password,
   });
 };
 
-export { checkRegister, loginUser };
+export { checkEmail, loginUser };
