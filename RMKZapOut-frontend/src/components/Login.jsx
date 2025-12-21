@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { checkEmail, loginUser } from "../services/authService";
-import { useNavigate } from "react-router-dom"; // for navigation
+import { useNavigate } from "react-router-dom";
 import loginImage from "../assets/login-illustration.jpg";
 import logo from "../assets/zaplogo.png";
 
 const Login = () => {
-  const [step, setStep] = useState(1); // 1: email, 2: password, 3: reset password
+  const [step, setStep] = useState(1);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -50,20 +50,16 @@ const Login = () => {
       const res = await loginUser(email, password);
       const { user } = res.data;
 
-      if (user.isFirstLogin) {
-        // go to first-time password reset
-        setStep(3);
-      } else {
-        // normal login → redirect to dashboard
-        navigate("/student-dashboard");
-      }
+      if (user.isFirstLogin) setStep(3);
+      else navigate("/student-dashboard");
+
       setError("");
     } catch (err) {
       setError(err.response?.data?.message || "Invalid credentials");
     }
   };
 
-  // Step 3: First-time password reset
+  // Step 3: Reset first-time password
   const handleResetPassword = async () => {
     if (!newPassword || !confirmPassword) {
       setError("Please fill all fields");
@@ -75,8 +71,7 @@ const Login = () => {
     }
 
     try {
-      // Call backend API to update password
-      await loginUser.updatePassword(email, newPassword); // create this API
+      await loginUser.updatePassword(email, newPassword);
       alert("Password updated successfully!");
       navigate("/student-dashboard");
     } catch (err) {
@@ -111,36 +106,20 @@ const Login = () => {
 
         {/* RIGHT LOGIN CARD */}
         <div className="w-1/2 flex items-center justify-center">
-          <div className="w-[420px] h-[600px] rounded-2xl p-8
-            bg-white/10 backdrop-blur-xl border border-white/20
-            shadow-[0_20px_50px_rgba(0,0,0,0.6)]
-            flex flex-col justify-between">
-
+          <div className="w-[420px] h-[600px] rounded-2xl p-8 bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.6)] flex flex-col justify-between">
             <div>
               <img src={logo} alt="RMK ZapOut" className="mx-auto h-40 mb-2" />
               <h1 className="text-white text-3xl font-semibold text-center">Welcome back!</h1>
               <h2 className="text-cyan-400 text-xl text-center mt-2">Login to Get Started</h2>
 
               <p className="text-gray-300 text-sm text-center mt-1">
-                {step === 1
-                  ? "Enter your official email address"
-                  : step === 2
-                    ? "Enter your password"
-                    : "Set a new password"}
+                {step === 1 ? "Enter your official email address" : step === 2 ? "Enter your password" : "Set a new password"}
               </p>
 
               {/* STEP 1: EMAIL */}
               {step === 1 && (
                 <>
-                  <input
-                    ref={emailRef}
-                    type="email"
-                    value={email}
-                    onChange={(e) => { setEmail(e.target.value); setError(""); }}
-                    onKeyDown={(e) => e.key === "Enter" && handleContinue()}
-                    placeholder="example@rmkec.ac.in"
-                    className="mt-6 w-full h-12 px-4 rounded-md bg-white/10 text-white placeholder-gray-400 border border-cyan-400/40 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
+                  <input ref={emailRef} type="email" value={email} onChange={(e) => { setEmail(e.target.value); setError(""); }} onKeyDown={(e) => e.key === "Enter" && handleContinue()} placeholder="example@rmkec.ac.in" className="mt-6 w-full h-12 px-4 rounded-md bg-white/10 text-white placeholder-gray-400 border border-cyan-400/40 focus:ring-2 focus:ring-indigo-500 outline-none"/>
                   <button onClick={handleContinue} className="mt-10 w-full h-12 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition">Continue</button>
                 </>
               )}
@@ -152,15 +131,7 @@ const Login = () => {
                     <span>{email}</span>
                     <button onClick={() => setStep(1)} className="text-indigo-400 hover:underline">Change</button>
                   </div>
-                  <input
-                    ref={passRef}
-                    type="password"
-                    value={password}
-                    onChange={(e) => { setPassword(e.target.value); setError(""); }}
-                    onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                    placeholder="Enter your password"
-                    className="mt-2 w-full px-4 py-3 rounded-md bg-white/10 text-white placeholder-gray-400 border border-white/10 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
+                  <input ref={passRef} type="password" value={password} onChange={(e) => { setPassword(e.target.value); setError(""); }} onKeyDown={(e) => e.key === "Enter" && handleLogin()} placeholder="Enter your password" className="mt-2 w-full px-4 py-3 rounded-md bg-white/10 text-white placeholder-gray-400 border border-white/10 focus:ring-2 focus:ring-indigo-500 outline-none"/>
                   <button onClick={handleLogin} className="mt-10 w-full py-3 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition">Login</button>
                 </>
               )}
@@ -168,21 +139,8 @@ const Login = () => {
               {/* STEP 3: FIRST-TIME PASSWORD RESET */}
               {step === 3 && (
                 <>
-                  <input
-                    ref={newPassRef}
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => { setNewPassword(e.target.value); setError(""); }}
-                    placeholder="Enter new password"
-                    className="mt-6 w-full h-12 px-4 rounded-md bg-white/10 text-white placeholder-gray-400 border border-cyan-400/40 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => { setConfirmPassword(e.target.value); setError(""); }}
-                    placeholder="Re-enter new password"
-                    className="mt-4 w-full h-12 px-4 rounded-md bg-white/10 text-white placeholder-gray-400 border border-cyan-400/40 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
+                  <input ref={newPassRef} type="password" value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setError(""); }} placeholder="Enter new password" className="mt-6 w-full h-12 px-4 rounded-md bg-white/10 text-white placeholder-gray-400 border border-cyan-400/40 focus:ring-2 focus:ring-indigo-500 outline-none"/>
+                  <input type="password" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setError(""); }} placeholder="Re-enter new password" className="mt-4 w-full h-12 px-4 rounded-md bg-white/10 text-white placeholder-gray-400 border border-cyan-400/40 focus:ring-2 focus:ring-indigo-500 outline-none"/>
                   <button onClick={handleResetPassword} className="mt-10 w-full py-3 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition">Update Password</button>
                 </>
               )}
