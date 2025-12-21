@@ -1,12 +1,15 @@
 import mysql from "mysql2/promise";
+import dotenv from "dotenv";
+
+dotenv.config(); // load variables from .env
 
 const pool = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "Surendar@19",
-  database: "rmkzapoutdb",
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   waitForConnections: true,
-  connectionLimit: 10,
+  connectionLimit: process.env.DB_CONNECTION_LIMIT || 10,
 });
 
 export default pool;
