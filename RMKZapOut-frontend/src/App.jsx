@@ -1,14 +1,7 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Login from "./pages/Login";
-import LoginPassword from "./pages/LoginPassword";
+import Login from "./components/Login.jsx"; // no curly braces needed
+import "./App.css"
+const App = () => {
+  return <Login />;
+};
 
-export default function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/password" element={<LoginPassword />} />
-      </Routes>
-    </BrowserRouter>
-  );
-}
+export default App;
