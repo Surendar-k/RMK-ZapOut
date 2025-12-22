@@ -1,7 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import Login from "./components/Login.jsx";
 import StudentDashboard from "./components/Student_Dashboard/StudentDashboard.jsx";
-// import StaffDashboard and AdminDashboard if you have them
+import StudentProfile from "./components/Student_Dashboard/StudentProfile.jsx";
 
 import "./App.css";
 
@@ -9,8 +9,14 @@ const App = () => {
   return (
     <Routes>
       <Route path="/" element={<Login />} />
+
+      {/* Student Routes */}
       <Route path="/student-dashboard" element={<StudentDashboard />} />
-      {/* Add routes for staff/admin if needed */}
+      <Route path="/profile" element={<StudentProfile />} />
+
+      {/* Future routes (keep commented) */}
+      {/* <Route path="/staff-dashboard" element={<StaffDashboard />} /> */}
+      {/* <Route path="/admin-dashboard" element={<AdminDashboard />} /> */}
     </Routes>
   );
 };
