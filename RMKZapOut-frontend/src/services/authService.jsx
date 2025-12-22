@@ -1,12 +1,19 @@
 import axios from "axios";
 
+// 🔥 FIXED BASE URL
 const API_URL = "http://localhost:5000/auth";
 
-const checkEmail = (email) => axios.post(`${API_URL}/check-email`, { email });
-const loginUser = (email, password) => axios.post(`${API_URL}/login`, { email, password });
-const updatePassword = (email, newPassword) => axios.put(`${API_URL}/update-password`, { email, newPassword });
+// Step 1: check email
+export const checkEmail = (email) =>
+  axios.post(`${API_URL}/check-email`, { email });
 
-// Attach to loginUser for easy frontend use
-loginUser.updatePassword = updatePassword;
+// Step 2: login
+export const loginUser = (email, password) =>
+  axios.post(`${API_URL}/login`, { email, password });
 
-export { checkEmail, loginUser };
+// Step 3: update password
+export const updatePassword = (email, newPassword) =>
+  axios.put(`${API_URL}/update-password`, {
+    email,
+    newPassword,
+  });

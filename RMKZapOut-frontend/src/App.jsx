@@ -10,9 +10,10 @@ import "./App.css";
 const App = () => {
   return (
     <Routes>
+      {/* LOGIN */}
       <Route path="/" element={<Login />} />
 
-      {/* STUDENT LAYOUT WITH SIDEBAR */}
+      {/* STUDENT AREA (LAYOUT WRAPS PAGES) */}
       <Route element={<StudentLayout />}>
         <Route path="/student-dashboard" element={<StudentDashboard />} />
         <Route path="/requests" element={<StudentRequests />} />

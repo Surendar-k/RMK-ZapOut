@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { checkEmail, loginUser } from "../services/authService";
+import { checkEmail, loginUser, updatePassword } from "../services/authService.jsx";
 import { useNavigate } from "react-router-dom";
 import loginImage from "../assets/login-illustration.jpg";
 import logo from "../assets/zaplogo.png";
@@ -41,43 +41,60 @@ const Login = () => {
   };
 
   // Step 2: Login
-  const handleLogin = async () => {
-    if (!password) {
-      setError("Please enter your password");
-      return;
-    }
-    try {
-      const res = await loginUser(email, password);
-      const { user } = res.data;
+const handleLogin = async () => {
+  if (!password) {
+    setError("Please enter your password");
+    return;
+  }
 
-      if (user.isFirstLogin) setStep(3);
-      else navigate("/student-dashboard");
+  try {
+    const res = await loginUser(email, password);
+    const { user, token } = res.data;
 
-      setError("");
-    } catch (err) {
-      setError(err.response?.data?.message || "Invalid credentials");
+    // ✅ SAVE USER SESSION
+    localStorage.setItem("user", JSON.stringify(user));
+    if (token) localStorage.setItem("token", token);
+
+    if (user.isFirstLogin) {
+      setStep(3);
+    } else {
+      navigate("/student-dashboard"); // ✅ CORRECT PAGE
     }
-  };
+
+    setError("");
+  } catch (err) {
+    setError(err.response?.data?.message || "Invalid credentials");
+  }
+};
 
   // Step 3: Reset first-time password
-  const handleResetPassword = async () => {
-    if (!newPassword || !confirmPassword) {
-      setError("Please fill all fields");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
+const handleResetPassword = async () => {
+  if (!newPassword || !confirmPassword) {
+    setError("Please fill all fields");
+    return;
+  }
 
-    try {
-      await loginUser.updatePassword(email, newPassword);
-      alert("Password updated successfully!");
-      navigate("/student-dashboard");
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to update password");
-    }
-  };
+  if (newPassword !== confirmPassword) {
+    setError("Passwords do not match");
+    return;
+  }
+
+  try {
+    await updatePassword(email, newPassword);
+
+    const res = await loginUser(email, newPassword);
+    const { user, token } = res.data;
+
+    localStorage.setItem("user", JSON.stringify(user));
+    if (token) localStorage.setItem("token", token);
+
+    navigate("/student-dashboard");
+  } catch (err) {
+    setError(err.response?.data?.message || "Failed to update password");
+  }
+};
+
+
 
   return (
     <div className="min-h-screen w-full bg-[#020617] relative overflow-hidden">
