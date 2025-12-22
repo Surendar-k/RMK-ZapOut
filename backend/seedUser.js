@@ -3,7 +3,6 @@ import db from "./config/db.js";
 
 const seedUsers = async () => {
   try {
-    // Prepare user data
     const users = [
       {
         username: "Admin User",
@@ -12,8 +11,7 @@ const seedUsers = async () => {
         phone: "9999999999",
         password: "Admin@123",
         role: "ADMIN",
-        is_first_login: 1,
-        is_active: 1,
+        student_type: "ADMIN",
       },
       {
         username: "Hosteller Student",
@@ -22,8 +20,7 @@ const seedUsers = async () => {
         phone: "8888888888",
         password: "Student@123",
         role: "STUDENT",
-        is_first_login: 1,
-        is_active: 1,
+        student_type: "HOSTELLER",
       },
       {
         username: "Dayscholar Student",
@@ -32,8 +29,7 @@ const seedUsers = async () => {
         phone: "7777777777",
         password: "Student@123",
         role: "STUDENT",
-        is_first_login: 1,
-        is_active: 1,
+        student_type: "DAYSCHOLAR",
       },
       {
         username: "Counsellor User",
@@ -42,9 +38,27 @@ const seedUsers = async () => {
         phone: "6666666666",
         password: "Counsellor@123",
         role: "COUNSELLOR",
-        is_first_login: 1,
-        is_active: 1,
+        student_type: "COUNSELLOR",
       },
+       {
+        username: "Coordinator User",
+        register_number: null,
+        email: "coordinator@rmkec.ac.in",
+        phone: "4444444444",
+        password: "Coordinator@123",
+        role: "COORDINATOR",
+        student_type: "COORDINATOR",
+      },
+       {
+        username: "Hod User",
+        register_number: null,
+        email: "hod@rmkec.ac.in",
+        phone: "3333333333",
+        password: "Hod@123",
+        role: "HOD",
+        student_type: "HOD",
+      },
+
     ];
 
     for (const user of users) {
@@ -52,8 +66,8 @@ const seedUsers = async () => {
 
       await db.query(
         `INSERT INTO users 
-        (username, register_number, email, phone, password_hash, role, is_first_login, is_active)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        (username, register_number, email, phone, password_hash, role, student_type, is_first_login, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 1, 1)`,
         [
           user.username,
           user.register_number,
@@ -61,14 +75,14 @@ const seedUsers = async () => {
           user.phone,
           hash,
           user.role,
-          user.is_first_login,
-          user.is_active,
+          user.student_type,
         ]
       );
 
       console.log(`✅ ${user.role} inserted successfully`);
       console.log(`📧 Email: ${user.email}`);
       console.log(`🔑 Password: ${user.password}`);
+      console.log("──────────────────────────────");
     }
 
     console.log("🎉 All users seeded successfully!");

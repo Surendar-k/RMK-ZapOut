@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Edit,
   Save,
@@ -8,12 +8,18 @@ import {
   Phone,
 } from "lucide-react";
 
-import qrSample from "../../assets/sample-qr.png";
+// import qrSample from "../../assets/sample-qr.png";
+import {
+  fetchStudentProfile,
+  updateStudentProfile,
+} from "../../services/studentProfileService";
 
 const glass =
   "bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-xl";
 
 const StudentProfile = () => {
+  const user = JSON.parse(localStorage.getItem("user"));
+
   const [editBasic, setEditBasic] = useState(false);
   const [editContact, setEditContact] = useState(false);
   const [editParents, setEditParents] = useState(false);
@@ -48,11 +54,70 @@ const StudentProfile = () => {
   const [form, setForm] = useState(initialData);
   const [saved, setSaved] = useState(initialData);
 
+  /* ================= LOAD PROFILE ================= */
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const res = await fetchStudentProfile(user.id);
+        const p = res.data;
+
+        const mapped = {
+          photo: p.photo,
+          name: p.username,
+          roll: p.register_number,
+          dept: p.department,
+          section: p.section,
+          year: p.year_of_study,
+          type: p.student_type === "HOSTELLER" ? "Hosteller" : "Day Scholar",
+          hostel: p.hostel_name,
+          bus: p.bus_details,
+          mobile: p.phone,
+          collegeEmail: p.collegeEmail,
+          personalEmail: p.personal_email,
+          counsellorName: p.counsellor_name,
+          counsellorMobile: p.counsellor_mobile,
+          fatherName: p.father_name,
+          fatherMobile: p.father_mobile,
+          motherName: p.mother_name,
+          motherMobile: p.mother_mobile,
+          guardianName: p.guardian_name,
+          guardianMobile: p.guardian_mobile,
+        };
+
+        setForm(mapped);
+        setSaved(mapped);
+      } catch {
+        alert("Failed to load profile");
+      }
+    };
+
+    loadProfile();
+  }, [user.id]);
+
+  /* ================= SAVE ================= */
+
+  const saveToDB = async (section) => {
+    try {
+      await updateStudentProfile(user.id, {
+        ...form,
+        type: form.type === "Hosteller" ? "HOSTELLER" : "DAYSCHOLAR",
+      });
+
+      setSaved(form);
+
+      if (section === "basic") setEditBasic(false);
+      if (section === "contact") setEditContact(false);
+      if (section === "parents") setEditParents(false);
+    } catch {
+      alert("Update failed");
+    }
+  };
+
   /* ================= VALIDATION ================= */
 
   const validateBasic = () => {
     if (
-      !form.photo ||
       !form.name ||
       !form.roll ||
       !form.dept ||
@@ -68,88 +133,61 @@ const StudentProfile = () => {
     return true;
   };
 
-  const validateContact = () => {
-    if (
-      !form.mobile ||
-      !form.collegeEmail ||
-      !form.counsellorName ||
-      !form.counsellorMobile
-    )
-      return false;
+  const validateContact = () =>
+    form.mobile && form.collegeEmail && form.counsellorName && form.counsellorMobile;
 
-    return true;
-  };
+  const validateParents = () =>
+    form.fatherName &&
+    form.fatherMobile &&
+    form.motherName &&
+    form.motherMobile;
 
-  const validateParents = () => {
-    if (
-      !form.fatherName ||
-      !form.fatherMobile ||
-      !form.motherName ||
-      !form.motherMobile
-    )
-      return false;
-
-    return true;
-  };
-
-  /* ================= SAVE ================= */
+  /* ================= SAVE HANDLERS ================= */
 
   const saveBasic = () => {
     if (!validateBasic()) {
-      setErrorBasic("Profile photo & all required fields are mandatory");
+      setErrorBasic("All required fields are mandatory");
       return;
     }
-    setSaved({ ...saved, ...form });
-    setEditBasic(false);
+    saveToDB("basic");
     setErrorBasic("");
   };
 
   const saveContact = () => {
     if (!validateContact()) {
-      setErrorContact("Counsellor details & contact fields are mandatory");
+      setErrorContact("Contact & counsellor details required");
       return;
     }
-    setSaved({ ...saved, ...form });
-    setEditContact(false);
+    saveToDB("contact");
     setErrorContact("");
   };
 
   const saveParents = () => {
     if (!validateParents()) {
-      setErrorParents("Please fill all required parent details");
+      setErrorParents("Parent details are mandatory");
       return;
     }
-    setSaved({ ...saved, ...form });
-    setEditParents(false);
+    saveToDB("parents");
     setErrorParents("");
   };
 
   const resetSection = (section) => {
-    setForm({ ...form, ...saved });
+    setForm(saved);
 
-    if (section === "basic") {
-      setEditBasic(false);
-      setErrorBasic("");
-    }
-    if (section === "contact") {
-      setEditContact(false);
-      setErrorContact("");
-    }
-    if (section === "parents") {
-      setEditParents(false);
-      setErrorParents("");
-    }
+    if (section === "basic") setEditBasic(false);
+    if (section === "contact") setEditContact(false);
+    if (section === "parents") setEditParents(false);
   };
 
+  /* ================= UI ================= */
+
   return (
-    <div
-      className="relative h-screen w-full overflow-hidden text-white
-      bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]"
-    >
+    <div className="relative h-screen w-full overflow-hidden text-white
+      bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
       <div className="h-full px-10 py-6 overflow-y-auto">
         <div className="grid grid-cols-2 gap-8">
 
-          {/* ================= BASIC ================= */}
+          {/* BASIC */}
           <div className={`${glass} p-6`}>
             <Header
               title="Basic Information"
@@ -158,42 +196,11 @@ const StudentProfile = () => {
               onSave={saveBasic}
               onReset={() => resetSection("basic")}
             />
-
             {errorBasic && <Error text={errorBasic} />}
-
-            <div className="flex justify-between mb-6">
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  hidden
-                  disabled={!editBasic}
-                  accept="image/*"
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      photo: URL.createObjectURL(e.target.files[0]),
-                    })
-                  }
-                />
-                <div className="w-24 h-24 rounded-full bg-white/10 flex items-center justify-center overflow-hidden">
-                  {form.photo ? (
-                    <img
-                      src={form.photo}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Camera />
-                  )}
-                </div>
-              </label>
-
-              <img src={qrSample} className="w-24 h-24" />
-            </div>
-
             <BasicFields editing={editBasic} form={form} setForm={setForm} />
           </div>
 
-          {/* ================= RIGHT ================= */}
+          {/* RIGHT */}
           <div className="flex flex-col gap-8">
 
             {/* CONTACT */}
@@ -205,17 +212,8 @@ const StudentProfile = () => {
                 onSave={saveContact}
                 onReset={() => resetSection("contact")}
               />
-
               {errorContact && <Error text={errorContact} />}
-
-              {/* FORM (locked when not editing) */}
-              <ContactFields
-                editing={editContact}
-                form={form}
-                setForm={setForm}
-              />
-
-              {/* ✅ CALL BUTTON ALWAYS ENABLED */}
+              <ContactFields editing={editContact} form={form} setForm={setForm} />
               {form.counsellorMobile && (
                 <a
                   href={`tel:${form.counsellorMobile}`}
@@ -237,14 +235,8 @@ const StudentProfile = () => {
                 onSave={saveParents}
                 onReset={() => resetSection("parents")}
               />
-
               {errorParents && <Error text={errorParents} />}
-
-              <ParentsFields
-                editing={editParents}
-                form={form}
-                setForm={setForm}
-              />
+              <ParentsFields editing={editParents} form={form} setForm={setForm} />
             </div>
 
           </div>
@@ -253,38 +245,6 @@ const StudentProfile = () => {
     </div>
   );
 };
-
-/* ================= REUSABLE ================= */
-
-const Header = ({ title, editing, onEdit, onSave, onReset }) => (
-  <div className="flex justify-between mb-6">
-    <h3 className="text-lg font-semibold">{title}</h3>
-    {!editing ? (
-      <button
-        onClick={onEdit}
-        className="flex items-center gap-2 text-cyan-400"
-      >
-        <Edit size={16} /> Edit
-      </button>
-    ) : (
-      <div className="flex gap-4">
-        <button
-          onClick={onSave}
-          className="flex items-center gap-2 text-green-400"
-        >
-          <Save size={16} /> Save
-        </button>
-        <button
-          onClick={onReset}
-          className="flex items-center gap-2 text-red-400"
-        >
-          <RotateCcw size={16} /> Reset
-        </button>
-      </div>
-    )}
-  </div>
-);
-
 const Error = ({ text }) => (
   <div className="mb-4 flex items-center gap-2 text-red-400">
     <AlertTriangle size={16} /> {text}
@@ -373,6 +333,39 @@ const Select = ({ label, options, required, ...props }) => (
     </select>
   </div>
 );
+const Header = ({ title, editing, onEdit, onSave, onReset }) => (
+  <div className="flex items-center justify-between mb-4">
+    <h2 className="text-lg font-semibold">{title}</h2>
+
+    <div className="flex gap-2">
+      {!editing ? (
+        <button
+          onClick={onEdit}
+          className="p-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30"
+        >
+          <Edit size={16} />
+        </button>
+      ) : (
+        <>
+          <button
+            onClick={onSave}
+            className="p-2 rounded-lg bg-green-500/20 hover:bg-green-500/30"
+          >
+            <Save size={16} />
+          </button>
+
+          <button
+            onClick={onReset}
+            className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30"
+          >
+            <RotateCcw size={16} />
+          </button>
+        </>
+      )}
+    </div>
+  </div>
+);
+
 
 const Divider = () => <div className="h-px bg-white/15 my-4" />;
 

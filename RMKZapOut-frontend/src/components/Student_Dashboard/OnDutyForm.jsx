@@ -1,233 +1,219 @@
-import { useState } from "react";
+// src/components/OnDutyForm.jsx
+import { useEffect, useState } from "react";
+import { fetchStudentProfile, applyOnDuty } from "../../services/onDutyService.jsx";
 
 const OnDutyForm = () => {
-  const user = JSON.parse(localStorage.getItem("user"));
+  const sessionUser = JSON.parse(localStorage.getItem("user"));
+
+  const [student, setStudent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const [form, setForm] = useState({
     eventType: "",
     eventName: "",
-    college: "",
+    organization: "",
     location: "",
     fromDate: "",
     toDate: "",
     proof: null,
   });
 
-  const glass =
-    "bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-xl";
+  // ================= FETCH STUDENT PROFILE =================
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const res = await fetchStudentProfile(sessionUser.id);
 
-  const isPlacement = form.eventType === "Placement";
+        if (res.data.role !== "STUDENT") {
+          setError("Only students can apply for On-Duty");
+          return;
+        }
 
-  const isFormValid =
-    form.eventType &&
-    form.eventName &&
-    form.college &&
-    form.location &&
-    form.fromDate &&
-    form.toDate &&
-    (isPlacement || form.proof);
+        setStudent(res.data);
+      } catch {
+        setError("Failed to load student details");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [sessionUser.id]);
+
+  // ================= HANDLE SUBMIT =================
+  const handleSubmit = async () => {
+    try {
+      if (!form.eventType || !form.eventName || !form.organization || !form.location || !form.fromDate || !form.toDate) {
+        alert("Please fill all event details.");
+        return;
+      }
+
+      const fd = new FormData();
+      fd.append("userId", sessionUser.id);
+      fd.append("eventType", form.eventType);
+      fd.append("eventName", form.eventName);
+      fd.append("college", form.organization);
+      fd.append("location", form.location);
+      fd.append("fromDate", form.fromDate);
+      fd.append("toDate", form.toDate);
+
+      if (form.proof) fd.append("proofFile", form.proof);
+
+      await applyOnDuty(fd);
+      alert("On-Duty request submitted successfully");
+
+      setForm({
+        eventType: "",
+        eventName: "",
+        organization: "",
+        location: "",
+        fromDate: "",
+        toDate: "",
+        proof: null,
+      });
+    } catch (err) {
+      alert(err.response?.data?.message || "Submission failed");
+    }
+  };
+
+  if (loading) return <p className="text-white p-6">Loading...</p>;
+  if (error) return <p className="text-red-400 p-6">{error}</p>;
 
   return (
-    <div className="min-h-screen w-full text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617] px-10 py-6">
-
-      {/* TITLE */}
-      <h1 className="text-3xl font-semibold mb-6">
+    <div className="min-h-screen bg-[#020617] text-white px-6 md:px-10 py-6">
+      <h1 className="text-3xl md:text-4xl font-semibold mb-6">
         Apply <span className="text-cyan-400">On-Duty</span>
       </h1>
 
-      <div className="max-w-5xl space-y-6">
+      {/* ================= STUDENT DETAILS ================= */}
+      <Section title="Student Details">
+        <Grid>
+          <ReadOnly label="Name" value={student.username} />
+          <ReadOnly label="Student Type" value={student.student_type} />
+          <ReadOnly label="Register No" value={student.register_number} />
+          <ReadOnly label="Email" value={student.email} />
+          <ReadOnly label="Department" value={student.department || "—"} />
+          <ReadOnly label="Year" value={student.year_of_study || "—"} />
+        </Grid>
+      </Section>
 
-        {/* ================= STUDENT DETAILS ================= */}
-        <div className={`${glass} p-6`}>
-          <h2 className="text-lg font-semibold mb-4 text-cyan-400">
-            Student Details
-          </h2>
+      {/* ================= EVENT DETAILS ================= */}
+      <Section title="Event Details">
+        <Grid>
+          <Select
+            label="Event Type"
+            value={form.eventType}
+            options={["HACKATHON", "WORKSHOP", "SYMPOSIUM", "PLACEMENT", "CONFERENCE", "OTHER"]}
+            onChange={(e) => setForm({ ...form, eventType: e.target.value })}
+          />
+          <Input
+            label="Event Name"
+            value={form.eventName}
+            onChange={(e) => setForm({ ...form, eventName: e.target.value })}
+          />
+          <Input
+            label="Organization / College"
+            value={form.organization}
+            onChange={(e) => setForm({ ...form, organization: e.target.value })}
+          />
+          <Input
+            label="Location"
+            value={form.location}
+            onChange={(e) => setForm({ ...form, location: e.target.value })}
+          />
+          <Date
+            label="From Date"
+            value={form.fromDate}
+            onChange={(e) => setForm({ ...form, fromDate: e.target.value })}
+          />
+          <Date
+            label="To Date"
+            value={form.toDate}
+            onChange={(e) => setForm({ ...form, toDate: e.target.value })}
+          />
+        </Grid>
+      </Section>
 
-          <div className="grid grid-cols-2 gap-4">
-            <ReadOnlyInput label="Student Name" value={user.username} />
-            <ReadOnlyInput label="Student Type" value={user.student_type} />
-            <ReadOnlyInput label="Register Number" value={user.register_number || "—"} />
-            <ReadOnlyInput label="Department" value={user.department || "—"} />
-            <ReadOnlyInput label="Year" value={user.year || "—"} />
-            <ReadOnlyInput label="Email" value={user.email || "—"} />
-          </div>
-        </div>
+      {/* ================= PROOF UPLOAD ================= */}
+      {form.eventType !== "PLACEMENT" && (
+        <Section title="Proof Upload">
+          <input
+            type="file"
+            accept=".pdf,.jpg,.png"
+            onChange={(e) => setForm({ ...form, proof: e.target.files[0] })}
+            className="block w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3"
+          />
+        </Section>
+      )}
 
-        {/* ================= EVENT DETAILS ================= */}
-        <div className={`${glass} p-6`}>
-          <h2 className="text-lg font-semibold mb-4 text-cyan-400">
-            Event Details
-          </h2>
-
-          <div className="grid grid-cols-2 gap-4">
-
-            {/* EVENT TYPE */}
-            <SelectInput
-              label="Event Type"
-              value={form.eventType}
-              options={[
-                "Hackathon",
-                "Symposium",
-                "Workshop",
-                "Placement",
-                "Conference",
-                "Others",
-              ]}
-              onChange={(e) =>
-                setForm({ ...form, eventType: e.target.value, proof: null })
-              }
-            />
-
-            <TextInput
-              label="Event Name"
-              placeholder="Enter event name"
-              onChange={(e) =>
-                setForm({ ...form, eventName: e.target.value })
-              }
-            />
-
-            <TextInput
-              label="College / Organization"
-              placeholder="Enter college name"
-              onChange={(e) =>
-                setForm({ ...form, college: e.target.value })
-              }
-            />
-
-            <TextInput
-              label="Event Location"
-              placeholder="Enter location"
-              onChange={(e) =>
-                setForm({ ...form, location: e.target.value })
-              }
-            />
-
-            <DateInput
-              label="From Date (dd/mm/yyyy)"
-              onChange={(e) =>
-                setForm({ ...form, fromDate: e.target.value })
-              }
-            />
-
-            <DateInput
-              label="To Date (dd/mm/yyyy)"
-              onChange={(e) =>
-                setForm({ ...form, toDate: e.target.value })
-              }
-            />
-
-          </div>
-        </div>
-
-        {/* ================= PROOF UPLOAD ================= */}
-        {!isPlacement && (
-          <div className={`${glass} p-6`}>
-            <h2 className="text-lg font-semibold mb-4 text-cyan-400">
-              Proof Upload
-            </h2>
-
-            <label className="block cursor-pointer">
-              <div className="bg-white/5 border border-dashed border-white/30 rounded-xl px-6 py-5 hover:bg-white/10 transition">
-                <p className="text-gray-300">
-                  {form.proof ? form.proof.name : "Upload proof document"}
-                </p>
-              </div>
-
-              <input
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                className="hidden"
-                onChange={(e) =>
-                  setForm({ ...form, proof: e.target.files[0] })
-                }
-              />
-            </label>
-
-            {/* PREVIEW */}
-            {form.proof && (
-              <div className="mt-4">
-                {form.proof.type.startsWith("image/") ? (
-                  <img
-                    src={URL.createObjectURL(form.proof)}
-                    alt="Preview"
-                    className="w-40 rounded-lg border border-white/20"
-                  />
-                ) : (
-                  <p className="text-sm text-gray-400">
-                    Selected file: {form.proof.name}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ================= SUBMIT ================= */}
-        <div className="pt-2">
-          <button
-            disabled={!isFormValid}
-            className={`px-8 py-3 rounded-xl font-semibold transition ${
-              isFormValid
-                ? "bg-cyan-400 text-black hover:scale-105"
-                : "bg-gray-500/30 text-gray-400 cursor-not-allowed"
-            }`}
-          >
-            Submit On-Duty
-          </button>
-        </div>
-
-      </div>
+      {/* ================= SUBMIT BUTTON ================= */}
+      <button
+        onClick={handleSubmit}
+        className="mt-6 px-8 py-3 rounded-xl bg-cyan-400 text-black font-semibold hover:scale-105 transition"
+      >
+        Submit On-Duty
+      </button>
     </div>
   );
 };
 
 /* ================= SMALL COMPONENTS ================= */
+const Section = ({ title, children }) => (
+  <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-6 mb-6">
+    <h2 className="text-lg font-semibold mb-4 text-cyan-400">{title}</h2>
+    {children}
+  </div>
+);
 
-const ReadOnlyInput = ({ label, value }) => (
+const Grid = ({ children }) => <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{children}</div>;
+
+const ReadOnly = ({ label, value }) => (
   <div>
-    <label className="text-sm text-gray-300 mb-1 block">{label}</label>
+    <label className="text-sm text-gray-300">{label}</label>
     <input
-      value={value}
       readOnly
+      value={value}
       className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-gray-300"
     />
   </div>
 );
 
-const TextInput = ({ label, placeholder, onChange }) => (
+const Input = ({ label, value, onChange }) => (
   <div>
-    <label className="text-sm text-gray-300 mb-1 block">{label}</label>
+    <label className="text-sm text-gray-300">{label}</label>
     <input
-      placeholder={placeholder}
+      value={value}
       onChange={onChange}
       className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white"
     />
   </div>
 );
 
-const DateInput = ({ label, onChange }) => (
+const Date = ({ label, value, onChange }) => (
   <div>
-    <label className="text-sm text-gray-300 mb-1 block">{label}</label>
+    <label className="text-sm text-gray-300">{label}</label>
     <input
       type="date"
+      value={value}
       onChange={onChange}
       className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white"
     />
   </div>
 );
 
-const SelectInput = ({ label, value, options, onChange }) => (
+const Select = ({ label, value, options, onChange }) => (
   <div>
-    <label className="text-sm text-gray-300 mb-1 block">{label}</label>
+    <label className="text-sm text-gray-300">{label}</label>
     <select
       value={value}
       onChange={onChange}
       className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white"
     >
       <option value="">Select</option>
-      {options.map((opt) => (
-        <option key={opt} value={opt} className="text-black">
-          {opt}
+      {options.map((o) => (
+        <option key={o} value={o} className="text-black">
+          {o}
         </option>
       ))}
     </select>
