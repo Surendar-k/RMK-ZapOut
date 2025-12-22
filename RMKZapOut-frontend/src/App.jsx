@@ -7,6 +7,7 @@ import StudentRequests from "./components/Student_Dashboard/StudentRequests.jsx"
 import StudentHistory from "./components/Student_Dashboard/StudentHistory.jsx";
 import StudentNotifications from "./components/Student_Dashboard/StudentNotifications.jsx";
 import NeedHelp from "./components/Student_Dashboard/NeedHelp.jsx";
+import StaffLayout from "./components/Staff_Dashboard/StaffLayout.jsx";
 
 import "./App.css";
 import GatepassForm from "./components/Student_Dashboard/GatepassForm.jsx";
@@ -28,6 +29,7 @@ const App = () => {
         <Route path="/need-help" element={<NeedHelp />} />
         <Route path="/apply-gatepass" element={<GatepassForm />} />
         <Route path="/apply-od" element={<OnDutyForm />} />
+        <Route path="/layout" element={<StudentLayout />} />
       </Route>
     </Routes>
   );
