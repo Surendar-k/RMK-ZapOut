@@ -9,6 +9,8 @@ import StudentNotifications from "./components/Student_Dashboard/StudentNotifica
 import NeedHelp from "./components/Student_Dashboard/NeedHelp.jsx";
 
 import "./App.css";
+import GatepassForm from "./components/Student_Dashboard/GatepassForm.jsx";
+import OnDutyForm from "./components/Student_Dashboard/OnDutyForm.jsx";
 
 const App = () => {
   return (
@@ -24,6 +26,8 @@ const App = () => {
         <Route path="/history" element={<StudentHistory />} />
         <Route path="/notifications" element={<StudentNotifications />} />
         <Route path="/need-help" element={<NeedHelp />} />
+        <Route path="/apply-gatepass" element={<GatepassForm />} />
+        <Route path="/apply-od" element={<OnDutyForm />} />
       </Route>
     </Routes>
   );

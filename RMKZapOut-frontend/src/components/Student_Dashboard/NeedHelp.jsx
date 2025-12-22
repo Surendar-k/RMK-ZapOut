@@ -1,51 +1,11 @@
 import { useState } from "react";
 
-const userRole = "Student"; 
-
-const quickHelpMap = {
-  Student: [
-    "How to apply Gate Pass",
-    "How On-Duty works",
-    "Approval flow explanation"
-  ],
-  Counsellor: [
-    "How to review student requests",
-    "Approval & rejection rules",
-    "Emergency handling"
-  ],
-  Warden: [
-    "QR scan verification",
-    "Emergency exit handling",
-    "Late return actions"
-  ],
-  Watchman: [
-    "Gate QR scanning",
-    "Manual verification steps",
-    "Emergency exits"
-  ]
-};
-
 export default function NeedHelp() {
   const [ticket, setTicket] = useState({
-    type: "",
+    issueType: "",
     message: "",
-    file: null
+    file: null,
   });
-
-  const faqs = [
-    {
-      q: "Why was my request rejected?",
-      a: "Your request may violate time, eligibility, or approval rules."
-    },
-    {
-      q: "How long does approval take?",
-      a: "Usually between 30 minutes to 2 hours depending on approvers."
-    },
-    {
-      q: "Can I cancel a request?",
-      a: "Yes, before final approval."
-    }
-  ];
 
   return (
     <div className="min-h-screen p-6 text-white bg-gradient-to-br from-[#0f172a] to-[#020617]">
@@ -55,26 +15,35 @@ export default function NeedHelp() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
         <GlassCard title="Quick Help">
-          {quickHelpMap[userRole]?.map((item, i) => (
-            <p key={i} className="py-1">• {item}</p>
-          ))}
+          <AccordionItem
+            title="How to apply Gate Pass"
+            content="Go to Dashboard → Apply Gate Pass → Fill details → Submit."
+          />
+          <AccordionItem
+            title="How On-Duty works"
+            content="Apply OD → Approval → QR generated → Exit allowed."
+          />
+          <AccordionItem
+            title="Approval flow explanation"
+            content="Student → Counsellor → HOD → Warden → Exit."
+          />
         </GlassCard>
 
         <GlassCard title="Rules & Policies">
-          <p>• Gate pass limits per week</p>
-          <p>• OD eligibility criteria</p>
-          <p className="text-red-300">• Late return consequences</p>
+          <AccordionItem
+            title="Gate pass limits"
+            content="Gate passes are limited per week as per policy."
+          />
+          <AccordionItem
+            title="On-duty eligibility"
+            content="Only eligible students with valid reasons can apply."
+          />
+          <AccordionItem
+            title="Late return consequences"
+            content="Late returns may lead to warnings or restrictions."
+            danger
+          />
         </GlassCard>
-
-        <GlassCard title="System Status">
-          <p>Gate Pass System: <span className="text-green-400">Online</span></p>
-          <p>QR Scanner: <span className="text-green-400">Active</span></p>
-          <p>Approval Flow: <span className="text-green-400">Running</span></p>
-        </GlassCard>
-
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
 
         <GlassCard title="Contact Support">
           <Contact label="Counsellor" value="+91 98765 43210" />
@@ -82,62 +51,107 @@ export default function NeedHelp() {
           <Contact label="IT Support" value="support@rmk.edu.in" />
         </GlassCard>
 
-        <GlassCard title="FAQs">
-          {faqs.map((f, i) => (
-            <details key={i} className="mb-2">
-              <summary className="cursor-pointer font-medium">{f.q}</summary>
-              <p className="text-sm opacity-80 mt-1">{f.a}</p>
-            </details>
-          ))}
-        </GlassCard>
-
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
 
+        <GlassCard title="FAQs">
+          <AccordionItem
+            title="Why was my request rejected?"
+            content="It may violate eligibility, timing, or approval rules."
+          />
+          <AccordionItem
+            title="How long does approval take?"
+            content="Usually between 30 minutes to 2 hours."
+          />
+          <AccordionItem
+            title="Can I cancel a request?"
+            content="Yes, before final approval."
+          />
+        </GlassCard>
+
         <GlassCard title="Raise Support Ticket">
           <select
-            className="w-full p-2 mb-3 bg-transparent border rounded"
-            value={ticket.type}
-            onChange={(e) => setTicket({ ...ticket, type: e.target.value })}
+            className="w-full p-2 mb-3 bg-transparent border border-white/20 rounded outline-none"
+            value={ticket.issueType}
+            onChange={(e) =>
+              setTicket({ ...ticket, issueType: e.target.value })
+            }
           >
             <option value="">Select Issue Type</option>
             <option>Gate Pass Issue</option>
             <option>On-Duty Issue</option>
-            <option>QR Issue</option>
+            <option>Approval Delay</option>
             <option>Other</option>
           </select>
 
           <textarea
-            className="w-full p-2 mb-3 bg-transparent border rounded"
+            className="w-full p-2 mb-4 bg-transparent border border-white/20 rounded outline-none"
             rows="4"
             placeholder="Describe your issue"
             value={ticket.message}
-            onChange={(e) => setTicket({ ...ticket, message: e.target.value })}
+            onChange={(e) =>
+              setTicket({ ...ticket, message: e.target.value })
+            }
           />
 
-          <input
-            type="file"
-            className="mb-3"
-            onChange={(e) => setTicket({ ...ticket, file: e.target.files[0] })}
-          />
+          <label className="block mb-4 cursor-pointer">
+            <div className="flex items-center justify-center gap-3 p-4 rounded-lg bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/15 transition">
+              <span className="text-2xl">📎</span>
+              <span className="text-sm">
+                {ticket.file ? ticket.file.name : "Upload Screenshot"}
+              </span>
+            </div>
 
-          <button className="w-full py-2 bg-blue-600 rounded hover:bg-blue-700">
+            <input
+              type="file"
+              className="hidden"
+              onChange={(e) =>
+                setTicket({ ...ticket, file: e.target.files[0] })
+              }
+            />
+          </label>
+
+          <button className="w-full py-2 bg-blue-600 rounded hover:bg-blue-700 transition">
             Submit Ticket
-          </button>
-        </GlassCard>
-
-        <GlassCard title="Emergency Help">
-          <p className="mb-4 text-red-300">
-            Use only in real emergency situations
-          </p>
-          <button className="w-full py-3 bg-red-600 rounded hover:bg-red-700 text-lg">
-            🚨 Emergency Exit Request
           </button>
         </GlassCard>
 
       </div>
 
+      <div className="mt-6">
+        <GlassCard title="Emergency Help">
+          <p className="mb-4 text-red-300">
+            Use only in genuine emergency situations
+          </p>
+          <button className="w-full py-3 bg-red-600 rounded hover:bg-red-700 transition text-lg">
+            🚨 Emergency Exit Request
+          </button>
+        </GlassCard>
+      </div>
+
+    </div>
+  );
+}
+
+function AccordionItem({ title, content, danger }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="mb-3 border border-white/20 rounded">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full text-left px-3 py-2 flex justify-between items-center"
+      >
+        <span className={danger ? "text-red-300" : ""}>{title}</span>
+        <span className="text-xl">{open ? "−" : "+"}</span>
+      </button>
+
+      {open && (
+        <div className="px-3 pb-3 text-sm opacity-80">
+          {content}
+        </div>
+      )}
     </div>
   );
 }

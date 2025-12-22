@@ -11,16 +11,20 @@ import {
 
 import logo from "../../assets/zaplogo.png";
 
+const SIDEBAR_WIDTH = "260px";
+
 const StudentLayout = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex min-h-screen w-full text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
+    <div className="min-h-screen w-full text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
 
-      {/* ================= SIDEBAR ================= */}
-      <aside className="w-[260px] bg-gradient-to-b from-[#071c2f] to-[#04111f] px-6 py-6 flex flex-col justify-between border-r border-white/10">
-
-        {/* LOGO ONLY */}
+      {/* ================= FIXED SIDEBAR ================= */}
+      <aside
+        className="fixed top-0 left-0 h-screen bg-gradient-to-b from-[#071c2f] to-[#04111f] px-6 py-6 flex flex-col justify-between border-r border-white/10"
+        style={{ width: SIDEBAR_WIDTH }}
+      >
+        {/* LOGO */}
         <div className="mb-10 flex justify-center">
           <img
             src={logo}
@@ -73,8 +77,11 @@ const StudentLayout = () => {
         </button>
       </aside>
 
-      {/* ================= PAGE CONTENT ================= */}
-      <main className="flex-1 overflow-y-auto p-6">
+      {/* ================= PAGE CONTENT (SCROLLS) ================= */}
+      <main
+        className="min-h-screen overflow-y-auto p-6"
+        style={{ marginLeft: SIDEBAR_WIDTH }}
+      >
         <Outlet />
       </main>
 
