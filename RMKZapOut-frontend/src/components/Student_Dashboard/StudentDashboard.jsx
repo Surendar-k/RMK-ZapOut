@@ -1,22 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import {
-  Home,
-  FileText,
-  History,
-  Bell,
-  User,
-  HelpCircle,
-  LogOut,
-  Star,
-} from "lucide-react";
-
-import logo from "../../assets/zaplogo.png";
+import { Star } from "lucide-react";
 import qrSample from "../../assets/sample-qr.png";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
 
-  const studentName = "Santhosh"; // ✅ V removed
+  const studentName = "Santhosh";
   const rollNo = "11172220309X";
 
   const stages = [
@@ -37,51 +26,40 @@ const StudentDashboard = () => {
     "bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-xl";
 
   return (
-    <div className="relative h-screen w-full flex overflow-hidden text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
+    /* 🔒 HOME PAGE FIXED — NO SCROLL */
+    <div className="relative h-screen w-full overflow-hidden text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
 
       {/* Bottom-right cyan glow */}
       <div className="pointer-events-none absolute bottom-0 right-0 w-[420px] h-[420px] bg-cyan-400/35 blur-[150px] rounded-full" />
 
-      {/* ================= SIDEBAR ================= */}
-      <aside className="w-[260px] bg-gradient-to-b from-[#071c2f] to-[#04111f] px-6 py-6 flex flex-col justify-between">
-        <div>
-          <img src={logo} alt="RMK ZapOut" className="w-44 mb-10" />
+      {/* ================= MAIN ================= */}
+      <main className="h-full px-10 py-6 flex flex-col">
 
-          <nav className="space-y-2">
-            <SidebarItem icon={<Home size={18} />} label="Home" active onClick={() => navigate("/student-dashboard")} />
-            <SidebarItem icon={<FileText size={18} />} label="Requests" onClick={() => navigate("/requests")} />
-            <SidebarItem icon={<History size={18} />} label="History" onClick={() => navigate("/history")} />
-            <SidebarItem icon={<Bell size={18} />} label="Notifications" onClick={() => navigate("/notifications")} />
-            <SidebarItem icon={<User size={18} />} label="Profile" onClick={() => navigate("/profile")} />
-            <SidebarItem icon={<HelpCircle size={18} />} label="Need Help" onClick={() => navigate("/need-help")} />
-          </nav>
+        {/* ================= WELCOME HEADER ================= */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-semibold">
+            Welcome to{" "}
+            <span className="text-cyan-400">Student Dashboard</span>
+          </h1>
+          <p className="text-gray-400 mt-2 max-w-3xl">
+            Manage your gate pass and on-duty requests, track approval status,
+            and stay informed about your campus activities — all in one place.
+          </p>
         </div>
 
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl hover:bg-red-500/20 transition"
-        >
-          <LogOut size={18} />
-          Logout
-        </button>
-      </aside>
-
-      {/* ================= MAIN ================= */}
-      <main className="flex-1 px-10 py-6">
-
-        {/* Header */}
-        <div className="flex justify-between items-start mb-10">
+        {/* ================= USER INFO ================= */}
+        <div className="flex justify-between items-start mb-8">
           <div className="flex items-center gap-4">
             <div className="w-11 h-11 rounded-full bg-cyan-500/20 flex items-center justify-center font-bold">
               S
             </div>
             <div>
-              <h1 className="text-xl font-semibold">
-                Hello! <span className="text-cyan-400">{studentName}</span>
+              <h2 className="text-lg font-semibold">
+                Hello, <span className="text-cyan-400">{studentName}</span>
                 <span className="ml-3 px-3 py-1 text-xs rounded-full bg-green-500/20 text-green-400">
                   Inside Campus
                 </span>
-              </h1>
+              </h2>
               <p className="text-sm text-gray-400">
                 IT | 8 Sec B | {rollNo}
               </p>
@@ -93,27 +71,35 @@ const StudentDashboard = () => {
           </p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-8 mb-10">
+        {/* ================= SUMMARY CARDS ================= */}
+        <div className="grid grid-cols-3 gap-8 mb-8">
           <StatCard title="Active Requests" value="1" />
           <StatCard title="Total Requests" value="12" />
           <StatCard title="Approval Rate" value="92%" />
         </div>
 
-        {/* Actions */}
+        {/* ================= QUICK ACTIONS ================= */}
         <div className="flex justify-center gap-30 mb-8">
-          <ActionButton label="Apply Gate Pass" onClick={() => navigate("/apply-gatepass")} />
-          <ActionButton label="Apply On-Duty" onClick={() => navigate("/apply-od")} />
+          <ActionButton
+            label="Apply Gate Pass"
+            onClick={() => navigate("/apply-gatepass")}
+          />
+          <ActionButton
+            label="Apply On-Duty"
+            onClick={() => navigate("/apply-od")}
+          />
         </div>
 
-        {/* Insight + Behaviour */}
+        {/* ================= INSIGHT & SCORE ================= */}
         <div className="flex justify-between mb-8">
           <p className="text-gray-300">
-            <span className="text-sm text-gray-400">Request Pattern Insight</span><br />
+            <span className="text-sm text-gray-400">
+              Request Pattern Insight
+            </span>
+            <br />
             You usually apply on Fridays 👍
           </p>
 
-          {/* ⭐ REAL STARS */}
           <div className="text-right">
             <p className="text-sm text-gray-400 mb-1">Behaviour Score</p>
             <div className="flex gap-1 justify-end">
@@ -136,7 +122,7 @@ const StudentDashboard = () => {
             <div
               className="absolute top-[8px] h-[2px] bg-cyan-400"
               style={{
-                left: `0%`,
+                left: "0%",
                 width: `calc(${dotPositionPercent(currentStageIndex)}% + 8px)`,
               }}
             />
@@ -160,7 +146,7 @@ const StudentDashboard = () => {
           </div>
         </div>
 
-        {/* QR */}
+        {/* ================= QR ================= */}
         <div className={`${glass} px-6 py-4 flex justify-between items-center`}>
           <div>
             <h3 className="font-semibold">Active QR Code</h3>
@@ -177,20 +163,6 @@ const StudentDashboard = () => {
 };
 
 /* ================= COMPONENTS ================= */
-
-const SidebarItem = ({ icon, label, onClick, active }) => (
-  <button
-    onClick={onClick}
-    className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl transition ${
-      active
-        ? "bg-blue-500/20 text-blue-400"
-        : "text-gray-300 hover:bg-white/5"
-    }`}
-  >
-    {icon}
-    {label}
-  </button>
-);
 
 const StatCard = ({ title, value }) => (
   <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-xl p-6">
@@ -209,4 +181,3 @@ const ActionButton = ({ label, onClick }) => (
 );
 
 export default StudentDashboard;
-
