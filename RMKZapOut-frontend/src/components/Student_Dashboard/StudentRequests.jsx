@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Edit, Trash2, Save, X } from "lucide-react";
+import { Edit, Trash2, Save, X, FileText } from "lucide-react";
 import {
   fetchOnDutyRequests,
   cancelOnDutyRequest,
@@ -11,15 +11,6 @@ const glass =
 
 const FILTERS = ["All", "Gate Pass", "On-Duty"];
 
-/* 🔹 Days calculation */
-// const calculateDays = (from, to) => {
-//   if (!from || !to) return "-";
-//   const start = new Date(from);
-//   const end = new Date(to);
-//   return Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
-// };
-
-/* 🔹 Approval stages */
 const STAGES = [
   { key: "SUBMITTED", label: "Submitted" },
   { key: "COUNSELLOR_APPROVED", label: "Counsellor" },
@@ -40,41 +31,33 @@ const StudentRequests = () => {
   const [activeFilter, setActiveFilter] = useState("All");
   const [loading, setLoading] = useState(true);
 
-  /* 🔹 Edit states */
   const [editId, setEditId] = useState(null);
   const [editData, setEditData] = useState({});
+  const [editFile, setEditFile] = useState(null); // <-- file state
 
-  /* 🔹 Load requests */
-  const loadRequests = async () => {
-    const res = await fetchOnDutyRequests(sessionUser.id);
-    setRequests(res.data.requests || []);
-    setLoading(false);
-  };
+  useEffect(() => {
+    let isMounted = true;
 
-useEffect(() => {
-  let isMounted = true; // avoid state updates if component unmounted
-
-  const loadRequests = async () => {
-    try {
-      const res = await fetchOnDutyRequests(sessionUser.id);
-      if (isMounted) {
-        setRequests(res.data.requests || []);
-        setLoading(false);
+    const loadRequests = async () => {
+      try {
+        const res = await fetchOnDutyRequests(sessionUser.id);
+        if (isMounted) {
+          setRequests(res.data.requests || []);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("Failed to load requests:", err);
+        if (isMounted) setLoading(false);
       }
-    } catch (err) {
-      console.error("Failed to load requests:", err);
-      if (isMounted) setLoading(false);
-    }
-  };
+    };
 
-  loadRequests();
+    loadRequests();
 
-  return () => {
-    isMounted = false; // cleanup
-  };
-}, [sessionUser.id]);
+    return () => {
+      isMounted = false;
+    };
+  }, [sessionUser.id]);
 
-  /* 🔹 Filters */
   const filteredRequests =
     activeFilter === "All"
       ? requests
@@ -84,7 +67,6 @@ useEffect(() => {
             : r.request_type === "ON_DUTY"
         );
 
-  /* 🔹 Edit handlers */
   const handleEdit = (r) => {
     setEditId(r.id);
     setEditData({
@@ -95,24 +77,34 @@ useEffect(() => {
       fromDate: r.from_date?.split("T")[0],
       toDate: r.to_date?.split("T")[0],
     });
+    setEditFile(null); // reset file input
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setEditData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, files } = e.target;
+    if (files) {
+      setEditFile(files[0]);
+    } else {
+      setEditData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSave = async (id) => {
     try {
       const formData = new FormData();
 
-      Object.entries(editData).forEach(([k, v]) =>
-        formData.append(k, v)
-      );
+      Object.entries(editData).forEach(([k, v]) => formData.append(k, v));
+
+      if (editFile) {
+        formData.append("proofFile", editFile); // append new file if uploaded
+      }
 
       await updateOnDutyRequest(id, formData);
-      await loadRequests();
       setEditId(null);
+      setEditFile(null);
+      // reload requests
+      const res = await fetchOnDutyRequests(sessionUser.id);
+      setRequests(res.data.requests || []);
     } catch (err) {
       console.error("Update failed:", err.response?.data || err.message);
       alert("Failed to update request");
@@ -123,13 +115,10 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617] text-white">
-
-      {/* ================= HEADER ================= */}
       <div className="sticky top-0 z-20 px-10 pt-8 pb-6 bg-gradient-to-b from-[#020617]/95 to-transparent backdrop-blur">
         <h1 className="text-2xl font-semibold mb-4">
           Live <span className="text-[#00d3d1]">{activeFilter}</span> Requests
         </h1>
-
         <div className="flex gap-4">
           {FILTERS.map((f) => (
             <button
@@ -147,7 +136,6 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* ================= REQUEST LIST ================= */}
       <div className="px-10 pb-10">
         {filteredRequests.map((r) => {
           const currentStage = getStageIndex(r.status);
@@ -155,8 +143,6 @@ useEffect(() => {
 
           return (
             <div key={r.id} className={`${glass} p-6 mb-8`}>
-
-              {/* ================= INFO GRID ================= */}
               <div className="grid grid-cols-3 gap-6 mb-6">
                 <EditableCard
                   label="Event Type"
@@ -190,11 +176,7 @@ useEffect(() => {
                   label="From Date"
                   name="fromDate"
                   type="date"
-                  value={
-                    isEditing
-                      ? editData.fromDate
-                      : r.from_date?.split("T")[0]
-                  }
+                  value={isEditing ? editData.fromDate : r.from_date?.split("T")[0]}
                   editable={isEditing}
                   onChange={handleChange}
                 />
@@ -202,19 +184,36 @@ useEffect(() => {
                   label="To Date"
                   name="toDate"
                   type="date"
-                  value={
-                    isEditing
-                      ? editData.toDate
-                      : r.to_date?.split("T")[0]
-                  }
+                  value={isEditing ? editData.toDate : r.to_date?.split("T")[0]}
                   editable={isEditing}
                   onChange={handleChange}
                 />
+                {isEditing && (
+                  <EditableCard
+                    label="Proof File"
+                    name="proofFile"
+                    type="file"
+                    value=""
+                    editable={true}
+                    onChange={handleChange}
+                  />
+                )}
+                {!isEditing && r.proof_file && (
+                  <div className="flex items-center gap-2 p-2 bg-white/10 border border-white/20 rounded-xl col-span-3">
+                    <FileText size={16} />
+                    <a
+                      href={`http://localhost:5000/uploads/${r.proof_file}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm text-[#00d3d1]"
+                    >
+                      {r.proof_file}
+                    </a>
+                  </div>
+                )}
               </div>
 
-              {/* ================= TRACKING (RESTORED) ================= */}
               <h3 className="font-semibold mb-4">Approval Progress</h3>
-
               <div className="relative mb-6">
                 <div className="absolute top-[10px] left-0 right-0 h-[2px] bg-white/10" />
                 <div
@@ -223,7 +222,6 @@ useEffect(() => {
                     width: `${(currentStage / (STAGES.length - 1)) * 100}%`,
                   }}
                 />
-
                 <div className="flex justify-between relative z-10">
                   {STAGES.map((stage, idx) => {
                     const approved = idx <= currentStage;
@@ -234,13 +232,9 @@ useEffect(() => {
                             approved ? "bg-cyan-400" : "bg-gray-500"
                           }`}
                         />
-                        <span className="text-xs mt-2 text-gray-300">
-                          {stage.label}
-                        </span>
+                        <span className="text-xs mt-2 text-gray-300">{stage.label}</span>
                         <span
-                          className={`text-xs ${
-                            approved ? "text-green-400" : "text-gray-400"
-                          }`}
+                          className={`text-xs ${approved ? "text-green-400" : "text-gray-400"}`}
                         >
                           {approved ? "Approved" : "Pending"}
                         </span>
@@ -250,7 +244,6 @@ useEffect(() => {
                 </div>
               </div>
 
-              {/* ================= ACTIONS ================= */}
               <div className="flex gap-4">
                 {r.status === "SUBMITTED" && !isEditing && (
                   <>
@@ -260,7 +253,6 @@ useEffect(() => {
                     >
                       <Edit size={16} /> Edit
                     </button>
-
                     <button
                       onClick={() => cancelOnDutyRequest(r.id)}
                       className="flex items-center gap-2 px-5 py-2 rounded bg-red-500/20 text-red-400 border border-red-500/30"
@@ -269,7 +261,6 @@ useEffect(() => {
                     </button>
                   </>
                 )}
-
                 {isEditing && (
                   <>
                     <button
@@ -278,7 +269,6 @@ useEffect(() => {
                     >
                       <Save size={16} /> Save
                     </button>
-
                     <button
                       onClick={() => setEditId(null)}
                       className="flex items-center gap-2 px-5 py-2 rounded bg-gray-500/20 text-gray-300"
@@ -296,23 +286,14 @@ useEffect(() => {
   );
 };
 
-/* ================= EDITABLE CARD ================= */
-const EditableCard = ({
-  label,
-  name,
-  value,
-  editable,
-  onChange,
-  type = "text",
-}) => (
+const EditableCard = ({ label, name, value, editable, onChange, type = "text" }) => (
   <div className="bg-white/10 backdrop-blur border border-white/20 rounded-xl p-4">
     <p className="text-xs text-gray-400 mb-1">{label}</p>
-
     {editable ? (
       <input
         type={type}
         name={name}
-        value={value || ""}
+        value={type !== "file" ? value || "" : undefined}
         onChange={onChange}
         className="w-full bg-transparent border border-white/30 rounded px-2 py-1 text-sm text-white"
       />
