@@ -35,11 +35,12 @@ export const checkEmail = async (req, res) => {
  */
 export const login = async (req, res) => {
   const { email, password } = req.body;
+
   try {
     const [rows] = await db.query(
-      `SELECT id, username, email, password_hash, role, is_first_login
+      `SELECT id, username, email, password_hash, role, student_type, is_first_login, is_active
        FROM users
-       WHERE email = ? AND is_active = 1`,
+       WHERE email = ?`,
       [email]
     );
 
@@ -47,9 +48,27 @@ export const login = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
 
     const user = rows[0];
+
+    if (!user.is_active)
+      return res.status(403).json({ message: "Account is inactive" });
+
+    // ✅ FIRST LOGIN: skip password check
+    if (user.is_first_login === 1) {
+      return res.status(200).json({
+        message: "First login - password reset required",
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          student_type: user.student_type,
+          isFirstLogin: true,
+        },
+      });
+    }
+
+    // ✅ NORMAL LOGIN
     const isMatch = await bcrypt.compare(password, user.password_hash);
-    if (!isMatch)
-      return res.status(401).json({ message: "Invalid password" });
+    if (!isMatch) return res.status(401).json({ message: "Invalid password" });
 
     res.status(200).json({
       message: "Login successful",
@@ -58,7 +77,8 @@ export const login = async (req, res) => {
         username: user.username,
         email: user.email,
         role: user.role,
-        isFirstLogin: user.is_first_login,
+        student_type: user.student_type,
+        isFirstLogin: false,
       },
     });
   } catch (err) {

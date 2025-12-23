@@ -36,12 +36,11 @@ const StudentLayout = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <div className="flex min-h-screen w-full text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
+   <div className="flex h-screen w-full text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617] overflow-hidden">
 
       {/* ================= SIDEBAR ================= */}
-      <aside className="w-[260px] bg-gradient-to-b from-[#071c2f] to-[#04111f] px-6 py-6 flex flex-col border-r border-white/10">
+     <aside className="w-[260px] h-screen bg-gradient-to-b from-[#071c2f] to-[#04111f] px-6 py-6 flex flex-col border-r border-white/10">
 
-        {/* LOGO */}
         <div className="mb-10 flex justify-center">
           <img
             src={logo}

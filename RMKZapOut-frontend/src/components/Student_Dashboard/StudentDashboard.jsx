@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import axios from "axios";
 import {
   FileText,
   Clock,
@@ -9,6 +8,8 @@ import {
   Bell,
   User,
 } from "lucide-react";
+
+import { fetchStudentProfile } from "../../services/studentProfileService.jsx";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -20,25 +21,31 @@ const StudentDashboard = () => {
   const glass =
     "bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-xl";
 
+  /* ================= LIVE CLOCK ================= */
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
+  /* ================= FETCH STUDENT PROFILE ================= */
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user"));
-    if (!user) {
+    const storedUser = localStorage.getItem("user");
+
+    if (!storedUser) {
       navigate("/");
       return;
     }
 
-    axios
-      .get(`http://localhost:5000/api/user/profile/${user.id}`)
+    const user = JSON.parse(storedUser);
+
+    fetchStudentProfile(user.id)
       .then((res) => {
         setStudent(res.data);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setLoading(false);
+      });
   }, [navigate]);
 
   if (loading) {
@@ -57,12 +64,27 @@ const StudentDashboard = () => {
     );
   }
 
-  const isHosteller = student.student_type === "Hosteller";
+  /* ================= ROLE LOGIC ================= */
+  const isStudent = student.role === "student";
+  const isHosteller =
+    isStudent && student.student_type === "Hosteller";
 
   return (
-    <div className="relative h-screen w-full text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
+    <div className="h-full w-full text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
 
-      <main className="h-full px-10 py-6 flex flex-col">
+      <main className="h-full px-10 py-6 flex flex-col overflow-y-auto">
+
+        {/* ================= HEADER ================= */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-semibold">
+            Welcome to{" "}
+            <span className="text-cyan-400">Student Dashboard</span>
+          </h1>
+          <p className="text-gray-400 mt-2 max-w-3xl">
+            Manage your gate pass and on-duty requests, track approval status,
+            and stay informed about your campus activities.
+          </p>
+        </div>
 
         {/* ================= GREETING ================= */}
         <div className="flex justify-between items-start mb-8">
@@ -94,46 +116,26 @@ const StudentDashboard = () => {
           </div>
         </div>
 
-        {/* ================= SUMMARY CARDS (RESTORED) ================= */}
+        {/* ================= SUMMARY CARDS ================= */}
         <div className="grid grid-cols-4 gap-8 mb-8">
-          <SummaryCard
-            title="Total Requests"
-            value="12"
-            icon={<FileText className="text-cyan-400" />}
-            iconBg="bg-cyan-500/20"
-          />
-
-          <SummaryCard
-            title="Pending"
-            value="2"
-            icon={<Clock className="text-yellow-400" />}
-            iconBg="bg-yellow-500/20"
-          />
-
-          <SummaryCard
-            title="Approved"
-            value="9"
-            icon={<CheckCircle className="text-green-400" />}
-            iconBg="bg-green-500/20"
-          />
-
-          <SummaryCard
-            title="Rejected"
-            value="1"
-            icon={<XCircle className="text-red-400" />}
-            iconBg="bg-red-500/20"
-          />
+          <SummaryCard title="Total Requests" value="12" icon={<FileText />} />
+          <SummaryCard title="Pending" value="2" icon={<Clock />} />
+          <SummaryCard title="Approved" value="9" icon={<CheckCircle />} />
+          <SummaryCard title="Rejected" value="1" icon={<XCircle />} />
         </div>
 
-        {/* ================= APPLY CARDS (ONLY ADDITION) ================= */}
+        {/* ================= APPLY BUTTONS ================= */}
         <div className="grid grid-cols-2 gap-8 mb-10">
+
+          {/* Hosteller → Gate Pass */}
           {isHosteller && (
             <ApplyCard
               title="Apply Gate Pass"
-              onClick={() => navigate("/studentapply-gatepass")}
+              onClick={() => navigate("/student/apply-gatepass")}
             />
           )}
 
+          {/* All students → On-Duty */}
           <ApplyCard
             title="Apply On-Duty"
             onClick={() => navigate("/student/apply-od")}
@@ -143,7 +145,6 @@ const StudentDashboard = () => {
         {/* ================= MAIN CONTENT ================= */}
         <div className="grid grid-cols-2 gap-8 flex-1">
 
-          {/* LIVE REQUESTS */}
           <div className={`${glass} p-6`}>
             <h2 className="flex items-center gap-2 text-lg font-semibold mb-6">
               <FileText className="text-cyan-400" />
@@ -160,14 +161,8 @@ const StudentDashboard = () => {
               subtitle="Approved by Counsellor"
               status="Approved"
             />
-            <RequestItem
-              title="Gate Pass"
-              subtitle="Waiting for HOD"
-              status="Pending"
-            />
           </div>
 
-          {/* NOTIFICATIONS */}
           <div className={`${glass} p-6`}>
             <h2 className="flex items-center gap-2 text-lg font-semibold mb-6">
               <Bell className="text-cyan-400" />
@@ -176,7 +171,6 @@ const StudentDashboard = () => {
 
             <NotificationItem text="Gate Pass request submitted" />
             <NotificationItem text="On-Duty approved by Counsellor" />
-            <NotificationItem text="Return time approaching (30 mins)" />
           </div>
 
         </div>
@@ -188,14 +182,13 @@ const StudentDashboard = () => {
 
 /* ================= COMPONENTS ================= */
 
-const SummaryCard = ({ title, value, icon, iconBg }) => (
+const SummaryCard = ({ title, value, icon }) => (
   <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-xl p-6 flex items-center justify-between">
     <div>
       <p className="text-sm text-gray-400">{title}</p>
       <p className="text-3xl mt-1">{value}</p>
     </div>
-
-    <div className={`p-4 rounded-xl ${iconBg}`}>
+    <div className="p-4 rounded-xl bg-white/10 text-cyan-400">
       {icon}
     </div>
   </div>

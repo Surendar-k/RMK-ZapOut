@@ -51,21 +51,30 @@ const handleLogin = async () => {
     const res = await loginUser(email, password);
     const { user, token } = res.data;
 
-    // ✅ SAVE USER SESSION
+    // SAVE USER SESSION
     localStorage.setItem("user", JSON.stringify(user));
     if (token) localStorage.setItem("token", token);
 
     if (user.isFirstLogin) {
       setStep(3);
-    } else {
-      navigate("/student-dashboard"); // ✅ CORRECT PAGE
+      return;
     }
+
+    // 🔹 SAFE ROLE FETCH
+    const role =
+      user.role ||
+      user.user_role ||
+      user.role_name ||
+      user.userRole;
+
+    navigateByRole(role);
 
     setError("");
   } catch (err) {
     setError(err.response?.data?.message || "Invalid credentials");
   }
 };
+
 
   // Step 3: Reset first-time password
 const handleResetPassword = async () => {
@@ -88,12 +97,41 @@ const handleResetPassword = async () => {
     localStorage.setItem("user", JSON.stringify(user));
     if (token) localStorage.setItem("token", token);
 
-    navigate("/student-dashboard");
+    const role =
+      user.role ||
+      user.user_role ||
+      user.role_name ||
+      user.userRole;
+
+    navigateByRole(role);
   } catch (err) {
     setError(err.response?.data?.message || "Failed to update password");
   }
 };
 
+
+const navigateByRole = (role) => {
+  if (!role) {
+    setError("User role not assigned. Contact admin.");
+    return;
+  }
+
+  const normalizedRole = role.toLowerCase();
+
+  if (normalizedRole === "student") {
+    navigate("/student/dashboard");
+  } else if (
+    normalizedRole === "staff" ||
+    normalizedRole === "hod" ||
+    normalizedRole === "counsellor" ||
+    normalizedRole === "coordinator" ||
+    normalizedRole === "warden"
+  ) {
+    navigate("/staff/dashboard");
+  } else {
+    setError("Invalid user role");
+  }
+};
 
 
   return (

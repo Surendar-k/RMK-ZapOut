@@ -115,8 +115,9 @@ const StudentRequests = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617] text-white">
-      <div className="sticky top-0 z-20 px-10 pt-8 pb-6 bg-gradient-to-b from-[#020617]/95 to-transparent backdrop-blur">
-        <h1 className="text-2xl font-semibold mb-4">
+     <div className="sticky top-0 z-30 px-10 pt-8 pb-6 bg-[#020617]/95 backdrop-blur border-b border-white/10">
+
+        <h1 className="text-2xl font-semibold mb-4 ">
           Live <span className="text-[#00d3d1]">{activeFilter}</span> Requests
         </h1>
         <div className="flex gap-4">
