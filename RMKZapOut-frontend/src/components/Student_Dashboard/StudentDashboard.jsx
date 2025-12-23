@@ -1,37 +1,32 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Star } from "lucide-react";
-import qrSample from "../../assets/sample-qr.png";
+import {
+  FileText,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Bell,
+  User,
+} from "lucide-react";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
 
-  /* ================= STATE ================= */
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  /* ================= REQUEST TRACKER DATA (TEMP STATIC) ================= */
-  const stages = [
-    "Submitted",
-    "Counsellor",
-    "Branch Co-Ordinator",
-    "HOD",
-    "Warden",
-    "Watchman",
-  ];
-  const currentStageIndex = 1;
-
-  const dotPositionPercent = (index) =>
-    (index / (stages.length - 1)) * 100;
+  const [now, setNow] = useState(new Date());
 
   const glass =
     "bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-xl";
 
-  /* ================= FETCH USER PROFILE ================= */
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem("user"));
-
     if (!user) {
       navigate("/");
       return;
@@ -43,13 +38,9 @@ const StudentDashboard = () => {
         setStudent(res.data);
         setLoading(false);
       })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-      });
+      .catch(() => setLoading(false));
   }, [navigate]);
 
-  /* ================= LOADING STATE ================= */
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center text-white bg-[#020617]">
@@ -66,158 +57,128 @@ const StudentDashboard = () => {
     );
   }
 
-  /* ================= RENDER ================= */
-  return (
-    <div className="relative h-screen w-full overflow-hidden text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
+  const isHosteller = student.student_type === "Hosteller";
 
-      {/* Glow */}
-      <div className="pointer-events-none absolute bottom-0 right-0 w-[420px] h-[420px] bg-cyan-400/35 blur-[150px] rounded-full" />
+  return (
+    <div className="relative h-screen w-full text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
 
       <main className="h-full px-10 py-6 flex flex-col">
 
-        {/* ================= HEADER ================= */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold">
-            Welcome to{" "}
-            <span className="text-cyan-400">Student Dashboard</span>
-          </h1>
-          <p className="text-gray-400 mt-2 max-w-3xl">
-            Manage your gate pass and on-duty requests, track approval status,
-            and stay informed about your campus activities.
-          </p>
-        </div>
-
-        {/* ================= USER INFO ================= */}
+        {/* ================= GREETING ================= */}
         <div className="flex justify-between items-start mb-8">
           <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-full bg-cyan-500/20 flex items-center justify-center font-bold">
-              {student.username?.charAt(0)}
+            <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center">
+              <User className="text-cyan-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold">
+              <h1 className="text-2xl font-semibold">
                 Hello,{" "}
                 <span className="text-cyan-400">
                   {student.username}
                 </span>
-                <span className="ml-3 px-3 py-1 text-xs rounded-full bg-green-500/20 text-green-400">
-                  Inside Campus
+              </h1>
+              <p className="text-sm text-gray-400 mt-1">
+                {student.role} | {student.register_number} |{" "}
+                <span className="text-cyan-300">
+                  {student.student_type}
                 </span>
-              </h2>
-              <p className="text-sm text-gray-400">
-                {student.role} | {student.register_number || "—"} |{" "}
-                {student.student_type || "—"}
               </p>
             </div>
           </div>
 
-          <p className="text-sm text-gray-300">
-            {new Date().toDateString()}
-          </p>
-        </div>
-
-        {/* ================= SUMMARY ================= */}
-        <div className="grid grid-cols-3 gap-8 mb-8">
-          <StatCard title="Active Requests" value="1" />
-          <StatCard title="Total Requests" value="12" />
-          <StatCard title="Approval Rate" value="92%" />
-        </div>
-
-        {/* ================= ACTIONS ================= */}
-        <div className="flex justify-center gap-20 mb-8">
-          <ActionButton
-            label="Apply Gate Pass"
-            onClick={() => navigate("/apply-gatepass")}
-          />
-          <ActionButton
-            label="Apply On-Duty"
-            onClick={() => navigate("/apply-od")}
-          />
-        </div>
-
-        {/* ================= INSIGHT ================= */}
-        <div className="flex justify-between mb-8">
-          <p className="text-gray-300">
-            <span className="text-sm text-gray-400">
-              Request Pattern Insight
-            </span>
-            <br />
-            You usually apply on Fridays 👍
-          </p>
-
-          <div className="text-right">
-            <p className="text-sm text-gray-400 mb-1">
-              Behaviour Score
+          <div className="text-right text-sm text-gray-300">
+            <p>{now.toDateString()}</p>
+            <p className="text-cyan-400 font-medium">
+              {now.toLocaleTimeString()}
             </p>
-            <div className="flex gap-1 justify-end">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Star
-                  key={i}
-                  size={18}
-                  className={
-                    i <= 4
-                      ? "text-yellow-400 fill-yellow-400"
-                      : "text-yellow-400"
-                  }
-                />
-              ))}
-            </div>
           </div>
         </div>
 
-        {/* ================= REQUEST TRACKER ================= */}
-        <div className={`${glass} p-6 mb-6`}>
-          <h3 className="font-semibold mb-6">
-            Request Tracker
-          </h3>
+        {/* ================= SUMMARY CARDS (RESTORED) ================= */}
+        <div className="grid grid-cols-4 gap-8 mb-8">
+          <SummaryCard
+            title="Total Requests"
+            value="12"
+            icon={<FileText className="text-cyan-400" />}
+            iconBg="bg-cyan-500/20"
+          />
 
-          <div className="relative">
-            <div className="absolute top-[8px] left-0 right-0 h-[2px] bg-white/10" />
-            <div
-              className="absolute top-[8px] h-[2px] bg-cyan-400"
-              style={{
-                width: `calc(${dotPositionPercent(
-                  currentStageIndex
-                )}% + 8px)`,
-              }}
+          <SummaryCard
+            title="Pending"
+            value="2"
+            icon={<Clock className="text-yellow-400" />}
+            iconBg="bg-yellow-500/20"
+          />
+
+          <SummaryCard
+            title="Approved"
+            value="9"
+            icon={<CheckCircle className="text-green-400" />}
+            iconBg="bg-green-500/20"
+          />
+
+          <SummaryCard
+            title="Rejected"
+            value="1"
+            icon={<XCircle className="text-red-400" />}
+            iconBg="bg-red-500/20"
+          />
+        </div>
+
+        {/* ================= APPLY CARDS (ONLY ADDITION) ================= */}
+        <div className="grid grid-cols-2 gap-8 mb-10">
+          {isHosteller && (
+            <ApplyCard
+              title="Apply Gate Pass"
+              onClick={() => navigate("/studentapply-gatepass")}
             />
+          )}
 
-            <div className="flex justify-between relative z-10">
-              {stages.map((stage, idx) => (
-                <div
-                  key={stage}
-                  className="flex flex-col items-center"
-                >
-                  <div
-                    className={`w-4 h-4 rounded-full ${
-                      idx <= currentStageIndex
-                        ? "bg-cyan-400"
-                        : "bg-gray-500"
-                    }`}
-                  />
-                  <span className="text-xs mt-1 text-gray-300 text-center">
-                    {stage}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ApplyCard
+            title="Apply On-Duty"
+            onClick={() => navigate("/student/apply-od")}
+          />
         </div>
 
-        {/* ================= QR ================= */}
-        <div className={`${glass} px-6 py-4 flex justify-between items-center`}>
-          <div>
-            <h3 className="font-semibold">
-              Active QR Code
-            </h3>
-            <p className="text-sm text-gray-400">
-              Valid for approved requests only
-            </p>
+        {/* ================= MAIN CONTENT ================= */}
+        <div className="grid grid-cols-2 gap-8 flex-1">
+
+          {/* LIVE REQUESTS */}
+          <div className={`${glass} p-6`}>
+            <h2 className="flex items-center gap-2 text-lg font-semibold mb-6">
+              <FileText className="text-cyan-400" />
+              Live Requests
+            </h2>
+
+            <RequestItem
+              title="Gate Pass"
+              subtitle="Waiting for Counsellor"
+              status="Pending"
+            />
+            <RequestItem
+              title="On-Duty"
+              subtitle="Approved by Counsellor"
+              status="Approved"
+            />
+            <RequestItem
+              title="Gate Pass"
+              subtitle="Waiting for HOD"
+              status="Pending"
+            />
           </div>
-          <img
-            src={qrSample}
-            alt="QR"
-            className="w-20 h-20"
-          />
+
+          {/* NOTIFICATIONS */}
+          <div className={`${glass} p-6`}>
+            <h2 className="flex items-center gap-2 text-lg font-semibold mb-6">
+              <Bell className="text-cyan-400" />
+              Notifications
+            </h2>
+
+            <NotificationItem text="Gate Pass request submitted" />
+            <NotificationItem text="On-Duty approved by Counsellor" />
+            <NotificationItem text="Return time approaching (30 mins)" />
+          </div>
+
         </div>
 
       </main>
@@ -227,22 +188,53 @@ const StudentDashboard = () => {
 
 /* ================= COMPONENTS ================= */
 
-const StatCard = ({ title, value }) => (
-  <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-xl p-6">
-    <p className="text-sm text-gray-400">{title}</p>
-    <p className="text-3xl text-cyan-400 mt-2">
-      {value}
+const SummaryCard = ({ title, value, icon, iconBg }) => (
+  <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-xl p-6 flex items-center justify-between">
+    <div>
+      <p className="text-sm text-gray-400">{title}</p>
+      <p className="text-3xl mt-1">{value}</p>
+    </div>
+
+    <div className={`p-4 rounded-xl ${iconBg}`}>
+      {icon}
+    </div>
+  </div>
+);
+
+const ApplyCard = ({ title, onClick }) => (
+  <div
+    onClick={onClick}
+    className="cursor-pointer bg-gradient-to-r from-cyan-400 to-blue-500 text-black rounded-2xl p-6 shadow-xl hover:scale-105 transition"
+  >
+    <h3 className="text-xl font-semibold">{title}</h3>
+    <p className="text-sm mt-1 opacity-80">
+      Click to submit request
     </p>
   </div>
 );
 
-const ActionButton = ({ label, onClick }) => (
-  <button
-    onClick={onClick}
-    className="px-10 py-4 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 text-black font-semibold hover:scale-105 transition"
-  >
-    {label}
-  </button>
+const RequestItem = ({ title, subtitle, status }) => (
+  <div className="bg-white/5 rounded-xl p-4 mb-4 flex justify-between items-center">
+    <div>
+      <p className="font-medium text-cyan-300">{title}</p>
+      <p className="text-sm text-gray-400">{subtitle}</p>
+    </div>
+    <span
+      className={
+        status === "Approved"
+          ? "text-green-400"
+          : "text-yellow-400"
+      }
+    >
+      {status}
+    </span>
+  </div>
+);
+
+const NotificationItem = ({ text }) => (
+  <div className="bg-white/5 rounded-xl p-4 mb-4 text-sm">
+    {text}
+  </div>
 );
 
 export default StudentDashboard;

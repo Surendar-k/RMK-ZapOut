@@ -1,4 +1,4 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import {
   Home,
   FileText,
@@ -7,23 +7,40 @@ import {
   User,
   HelpCircle,
   LogOut,
+  Users,
 } from "lucide-react";
 
 import logo from "../../assets/zaplogo.png";
 
-const SIDEBAR_WIDTH = "260px";
+const SidebarItem = ({ icon, label, onClick, active }) => {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all
+        ${
+          active
+            ? "bg-white/10 text-white"
+            : "text-white/70 hover:bg-white/5 hover:text-white"
+        }`}
+    >
+      {icon}
+      <span className="text-sm font-medium">{label}</span>
+    </button>
+  );
+};
 
 const StudentLayout = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isActive = (path) => location.pathname === path;
 
   return (
-    <div className="min-h-screen w-full text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
+    <div className="flex min-h-screen w-full text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
 
-      {/* ================= FIXED SIDEBAR ================= */}
-      <aside
-        className="fixed top-0 left-0 h-screen bg-gradient-to-b from-[#071c2f] to-[#04111f] px-6 py-6 flex flex-col justify-between border-r border-white/10"
-        style={{ width: SIDEBAR_WIDTH }}
-      >
+      {/* ================= SIDEBAR ================= */}
+      <aside className="w-[260px] bg-gradient-to-b from-[#071c2f] to-[#04111f] px-6 py-6 flex flex-col border-r border-white/10">
+
         {/* LOGO */}
         <div className="mb-10 flex justify-center">
           <img
@@ -34,71 +51,74 @@ const StudentLayout = () => {
         </div>
 
         {/* NAVIGATION */}
-        <nav className="space-y-2 flex-1">
+        <nav className="space-y-2 flex-1 overflow-y-auto">
+
           <SidebarItem
             icon={<Home size={18} />}
-            label="Home"
-            onClick={() => navigate("/student-dashboard")}
+            label="Dashboard"
+            active={isActive("/student/dashboard")}
+            onClick={() => navigate("/student/dashboard")}
           />
+
           <SidebarItem
             icon={<FileText size={18} />}
             label="Requests"
-            onClick={() => navigate("/requests")}
+            active={isActive("/student/requests")}
+            onClick={() => navigate("/student/requests")}
           />
+
           <SidebarItem
             icon={<History size={18} />}
             label="History"
-            onClick={() => navigate("/history")}
+            active={isActive("/student/history")}
+            onClick={() => navigate("/student/history")}
           />
+
           <SidebarItem
             icon={<Bell size={18} />}
             label="Notifications"
-            onClick={() => navigate("/notifications")}
+            active={isActive("/student/notifications")}
+            onClick={() => navigate("/student/notifications")}
           />
+
+          <SidebarItem
+            icon={<Users size={18} />}
+            label="Staffs"
+            active={isActive("/student/staffs")}
+            onClick={() => navigate("/student/staffs")}
+          />
+
           <SidebarItem
             icon={<User size={18} />}
             label="Profile"
-            onClick={() => navigate("/profile")}
+            active={isActive("/student/profile")}
+            onClick={() => navigate("/student/profile")}
           />
+
           <SidebarItem
             icon={<HelpCircle size={18} />}
             label="Need Help"
-            onClick={() => navigate("/need-help")}
+            active={isActive("/student/help")}
+            onClick={() => navigate("/student/help")}
           />
         </nav>
 
         {/* LOGOUT */}
         <button
           onClick={() => navigate("/")}
-          className="flex items-center gap-3 bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl hover:bg-red-500/20 transition"
+          className="mt-6 flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all"
         >
           <LogOut size={18} />
-          Logout
+          <span className="text-sm font-medium">Logout</span>
         </button>
       </aside>
 
-      {/* ================= PAGE CONTENT (SCROLLS) ================= */}
-      <main
-        className="min-h-screen overflow-y-auto p-6"
-        style={{ marginLeft: SIDEBAR_WIDTH }}
-      >
+      {/* ================= MAIN CONTENT ================= */}
+      <main className="flex-1 p-8 overflow-y-auto">
         <Outlet />
       </main>
-
     </div>
   );
 };
-
-/* ================= SIDEBAR ITEM ================= */
-
-const SidebarItem = ({ icon, label, onClick }) => (
-  <button
-    onClick={onClick}
-    className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-gray-300 hover:bg-white/10 transition"
-  >
-    {icon}
-    <span>{label}</span>
-  </button>
-);
 
 export default StudentLayout;
