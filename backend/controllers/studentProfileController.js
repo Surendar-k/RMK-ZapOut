@@ -53,6 +53,7 @@ export const getStudentProfile = async (req, res) => {
   }
 };
 
+
 /**
  * UPDATE STUDENT PROFILE
  */
@@ -61,19 +62,15 @@ export const updateStudentProfile = async (req, res) => {
   const data = req.body;
 
   try {
+    // Update users table
     await db.query(
-      `
-      UPDATE users SET
-        personal_email = ?,
-        phone = ?
-      WHERE id = ?
-      `,
+      `UPDATE users SET personal_email = ?, phone = ? WHERE id = ?`,
       [data.personalEmail, data.mobile, userId]
     );
 
+    // Update students table (split hostel_name & room_number)
     await db.query(
-      `
-      UPDATE students SET
+      `UPDATE students SET
         section = ?,
         student_type = ?,
         hostel_name = ?,
@@ -85,8 +82,7 @@ export const updateStudentProfile = async (req, res) => {
         mother_mobile = ?,
         guardian_name = ?,
         guardian_mobile = ?
-      WHERE user_id = ?
-      `,
+      WHERE user_id = ?`,
       [
         data.section,
         data.type,

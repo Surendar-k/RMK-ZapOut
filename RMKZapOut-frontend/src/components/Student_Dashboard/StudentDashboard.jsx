@@ -65,9 +65,6 @@ const StudentDashboard = () => {
   }
 
   /* ================= ROLE LOGIC ================= */
-  const isStudent = student.role === "student";
-  const isHosteller =
-    isStudent && student.student_type === "Hosteller";
 
   return (
     <div className="h-full w-full text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
@@ -125,22 +122,23 @@ const StudentDashboard = () => {
         </div>
 
         {/* ================= APPLY BUTTONS ================= */}
-        <div className="grid grid-cols-2 gap-8 mb-10">
+     
+<div className={`grid ${student.student_type?.toLowerCase() === "hosteller" ? "grid-cols-2" : "grid-cols-1"} gap-8 mb-10`}>
+  {/* Gate Pass → Only for Hosteller */}
+  {student.student_type?.toLowerCase() === "hosteller" && (
+    <ApplyCard
+      title="Apply Gate Pass"
+      onClick={() => navigate("/student/apply-gatepass")}
+    />
+  )}
 
-          {/* Hosteller → Gate Pass */}
-          {isHosteller && (
-            <ApplyCard
-              title="Apply Gate Pass"
-              onClick={() => navigate("/student/apply-gatepass")}
-            />
-          )}
+  {/* On-Duty → For all students */}
+  <ApplyCard
+    title="Apply On-Duty"
+    onClick={() => navigate("/student/apply-od")}
+  />
+</div>
 
-          {/* All students → On-Duty */}
-          <ApplyCard
-            title="Apply On-Duty"
-            onClick={() => navigate("/student/apply-od")}
-          />
-        </div>
 
         {/* ================= MAIN CONTENT ================= */}
         <div className="grid grid-cols-2 gap-8 flex-1">
