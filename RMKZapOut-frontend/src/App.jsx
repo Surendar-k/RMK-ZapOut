@@ -11,7 +11,7 @@ import StudentRequests from "./components/Student_Dashboard/StudentRequests.jsx"
 import StudentProfile from "./components/Student_Dashboard/StudentProfile.jsx";
 import StudentHistory from "./components/Student_Dashboard/StudentHistory.jsx";
 import StudentNotifications from "./components/Student_Dashboard/StudentNotifications.jsx";
-import GatepassForm from "./components/Student_Dashboard/GatepassForm.jsx";
+import GatepassForm from "./components/Student_Dashboard/GatePassForm.jsx";
 import OnDutyForm from "./components/Student_Dashboard/OnDutyForm.jsx";
 import Staffs from "./components/Student_Dashboard/Staffs.jsx";
 import NeedHelp from "./components/Student_Dashboard/NeedHelp.jsx";
