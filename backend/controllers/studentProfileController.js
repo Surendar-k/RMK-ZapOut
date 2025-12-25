@@ -7,10 +7,8 @@ export const getStudentProfile = async (req, res) => {
   const { userId } = req.params;
 
   try {
-    const [rows] = await db.query(
-      `
-      SELECT 
-        u.id,
+    const [[row]] = await db.query(
+      `SELECT 
         u.username,
         u.register_number,
         u.email AS collegeEmail,
@@ -30,7 +28,6 @@ export const getStudentProfile = async (req, res) => {
         s.guardian_name,
         s.guardian_mobile,
         d.name AS department,
-        c.cabin_number,
         cu.username AS counsellor_name,
         cu.phone AS counsellor_mobile
       FROM users u
@@ -38,41 +35,36 @@ export const getStudentProfile = async (req, res) => {
       JOIN departments d ON d.id = s.department_id
       LEFT JOIN counsellors c ON c.id = s.counsellor_id
       LEFT JOIN users cu ON cu.id = c.user_id
-      WHERE u.id = ?
-      `,
+      WHERE u.id = ?`,
       [userId]
     );
 
-    if (rows.length === 0)
-      return res.status(404).json({ message: "Profile not found" });
+    if (!row) return res.status(404).json({ message: "Profile not found" });
 
-    res.json(rows[0]);
+    res.json(row);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-
 /**
  * UPDATE STUDENT PROFILE
  */
 export const updateStudentProfile = async (req, res) => {
   const { userId } = req.params;
-  const data = req.body;
+  const d = req.body;
 
   try {
-    // Update users table
+    // USERS
     await db.query(
-      `UPDATE users SET personal_email = ?, phone = ? WHERE id = ?`,
-      [data.personalEmail, data.mobile, userId]
+      `UPDATE users SET phone = ?, personal_email = ? WHERE id = ?`,
+      [d.mobile, d.personalEmail, userId]
     );
 
-    // Update students table (split hostel_name & room_number)
+    // STUDENTS
     await db.query(
       `UPDATE students SET
-        section = ?,
-        student_type = ?,
         hostel_name = ?,
         room_number = ?,
         bus_details = ?,
@@ -82,24 +74,22 @@ export const updateStudentProfile = async (req, res) => {
         mother_mobile = ?,
         guardian_name = ?,
         guardian_mobile = ?
-      WHERE user_id = ?`,
+       WHERE user_id = ?`,
       [
-        data.section,
-        data.type,
-        data.hostel || null,
-        data.room || null,
-        data.bus || null,
-        data.fatherName,
-        data.fatherMobile,
-        data.motherName,
-        data.motherMobile,
-        data.guardianName,
-        data.guardianMobile,
+        d.hostel || null,
+        d.room || null,
+        d.bus || null,
+        d.fatherName || null,
+        d.fatherMobile || null,
+        d.motherName || null,
+        d.motherMobile || null,
+        d.guardianName || null,
+        d.guardianMobile || null,
         userId,
       ]
     );
 
-    res.json({ message: "Profile updated successfully" });
+    res.json({ message: "Profile updated" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Update failed" });

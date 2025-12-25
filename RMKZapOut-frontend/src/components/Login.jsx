@@ -120,7 +120,9 @@ const navigateByRole = (role) => {
 
   if (normalizedRole === "student") {
     navigate("/student/dashboard");
-  } else if (
+  }
+   else if (
+   
     normalizedRole === "staff" ||
     normalizedRole === "hod" ||
     normalizedRole === "counsellor" ||
@@ -128,7 +130,12 @@ const navigateByRole = (role) => {
     normalizedRole === "warden"
   ) {
     navigate("/staff/dashboard");
-  } else {
+  }
+  else if (normalizedRole === "admin") { 
+  navigate("/admin/dashboard");
+}
+
+  else {
     setError("Invalid user role");
   }
 };
