@@ -8,6 +8,8 @@ import onDutyRoutes from "./routes/onDutyRoutes.js";
 import studentProfileRoutes from "./routes/studentProfileRoutes.js";
 import gatepassRoutes from "./routes/gatepassRoutes.js";
 import requestRoutes from "./routes/requestRoutes.js";
+import staffProfileRoutes from "./routes/staffProfileRoutes.js";
+
 dotenv.config();
 const app = express();
 
@@ -26,7 +28,7 @@ app.use("/api/requests", requestRoutes);
 
 //profiles
 app.use("/api/student/profile", studentProfileRoutes);
-
+app.use("/api/staff/profile", staffProfileRoutes);
 
 const PORT = 5000;
 app.listen(PORT, () => {
