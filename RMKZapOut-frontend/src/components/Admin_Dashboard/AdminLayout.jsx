@@ -64,11 +64,6 @@ const AdminLayout = () => {
             path="/admin/dashboard"
           />
           <SidebarItem
-            icon={<Users size={18} />}
-            label="Users"
-            path="/admin/users"
-          />
-          <SidebarItem
             icon={<GraduationCap size={18} />}
             label="Students"
             path="/admin/students"
@@ -77,11 +72,6 @@ const AdminLayout = () => {
             icon={<UserCog size={18} />}
             label="Staffs"
             path="/admin/staffs"
-          />
-          <SidebarItem
-            icon={<Shield size={18} />}
-            label="Roles & Permissions"
-            path="/admin/roles-permissions"
           />
           <SidebarItem
             icon={<Building2 size={18} />}
