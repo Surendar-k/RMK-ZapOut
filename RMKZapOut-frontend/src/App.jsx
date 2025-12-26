@@ -29,10 +29,8 @@ import Students from "./components/Staff_Dashboard/Students.jsx";
 /* ================= ADMIN ================= */
 import AdminLayout from "./components/Admin_Dashboard/AdminLayout.jsx";
 import AdminDashboard from "./components/Admin_Dashboard/AdminDashboard.jsx";
-import AdminUsers from "./components/Admin_Dashboard/Users.jsx";
 import AdminStudents from "./components/Admin_Dashboard/AdminStudents.jsx";
 import AdminStaffs from "./components/Admin_Dashboard/AdminStaffs.jsx";
-import RolesPermissions from "./components/Admin_Dashboard/RolesPermissions.jsx";
 import Departments from "./components/Admin_Dashboard/Departments.jsx";
 import AdminReports from "./components/Admin_Dashboard/AdminReports.jsx";
 import AdminNotifications from "./components/Admin_Dashboard/AdminNotifications.jsx";
@@ -72,10 +70,8 @@ const App = () => {
       {/* ================= ADMIN ================= */}
       <Route path="/admin" element={<AdminLayout />}>
         <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="users" element={<AdminUsers />} />
         <Route path="students" element={<AdminStudents />} />
         <Route path="staffs" element={<AdminStaffs />} />
-        <Route path="roles-permissions" element={<RolesPermissions />} />
         <Route path="departments" element={<Departments />} />
         <Route path="reports" element={<AdminReports />} />
         <Route path="notifications" element={<AdminNotifications />} />
