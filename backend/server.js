@@ -9,7 +9,7 @@ import studentProfileRoutes from "./routes/studentProfileRoutes.js";
 import gatepassRoutes from "./routes/gatepassRoutes.js";
 import requestRoutes from "./routes/requestRoutes.js";
 import staffProfileRoutes from "./routes/staffProfileRoutes.js";
-
+import adminStaffRoutes from "./routes/adminRoutes.js";
 dotenv.config();
 const app = express();
 
@@ -20,6 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/auth", authRoutes);
 //user management
 app.use("/api/user", userRoutes);
+app.use("/api", adminStaffRoutes);
 
 //forms
 app.use("/api/onduty", onDutyRoutes);
