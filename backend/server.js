@@ -10,6 +10,8 @@ import gatepassRoutes from "./routes/gatepassRoutes.js";
 import requestRoutes from "./routes/requestRoutes.js";
 import staffProfileRoutes from "./routes/staffProfileRoutes.js";
 import adminStaffRoutes from "./routes/adminRoutes.js";
+import departmentRoutes from "./routes/departmentRoutes.js";
+
 dotenv.config();
 const app = express();
 
@@ -31,6 +33,8 @@ app.use("/api/requests", requestRoutes);
 app.use("/api/student/profile", studentProfileRoutes);
 app.use("/api/staff/profile", staffProfileRoutes);
 
+//departments
+app.use("/api/departments", departmentRoutes);
 const PORT = 5000;
 app.listen(PORT, () => {
   console.log(`RMK ZapOut backend running on port ${PORT}`);
