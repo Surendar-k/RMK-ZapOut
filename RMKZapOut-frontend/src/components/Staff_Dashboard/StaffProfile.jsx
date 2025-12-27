@@ -1,28 +1,19 @@
 import { useEffect, useState } from "react";
-import {
-  User,
-  Mail,
-  Phone,
-  ShieldCheck,
-  Pencil,
-  Save,
-  RotateCcw,
-} from "lucide-react";
-import {
-  fetchStaffProfile,
-  updateStaffProfile,
-} from "../../services/staffProfileService.jsx";
+import { User, Mail, Phone, ShieldCheck, Pencil, Save, RotateCcw } from "lucide-react";
+import { fetchStaffProfile, updateStaffProfile } from "../../services/staffProfileService.jsx";
+import axios from "axios";
+
+const DEPT_API = "http://localhost:5000/api/departments";
 
 const StaffProfile = () => {
-  const sessionUser = JSON.parse(localStorage.getItem("user")); // { id, role }
-
+  const sessionUser = JSON.parse(localStorage.getItem("user"));
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(true);
-
   const [profile, setProfile] = useState(null);
   const [tempProfile, setTempProfile] = useState(null);
+  const [departments, setDepartments] = useState([]);
 
-  /* ================= FETCH PROFILE ================= */
+  // Fetch profile
   const loadProfile = async () => {
     try {
       const res = await fetchStaffProfile(sessionUser.id);
@@ -36,15 +27,24 @@ const StaffProfile = () => {
     }
   };
 
+  // Fetch departments
+  const loadDepartments = async () => {
+    try {
+      const res = await axios.get(DEPT_API);
+      setDepartments(res.data);
+    } catch (err) {
+      console.error("Department fetch failed", err);
+    }
+  };
+
   useEffect(() => {
-    if (sessionUser?.id) loadProfile();
+    if (sessionUser?.id) {
+      loadProfile();
+      loadDepartments();
+    }
   }, [sessionUser?.id]);
 
-  /* ================= ACTIONS ================= */
-  const handleEdit = () => {
-    setTempProfile(profile);
-    setEditMode(true);
-  };
+  const handleEdit = () => setEditMode(true);
 
   const handleSave = async () => {
     try {
@@ -58,41 +58,38 @@ const StaffProfile = () => {
     }
   };
 
-  const handleReset = () => {
-    setTempProfile(profile);
-  };
+  const handleReset = () => setTempProfile(profile);
 
   if (loading) return <p className="p-6 text-white">Loading profile…</p>;
   if (!profile) return null;
 
   return (
     <div className="p-6 text-white">
-      {/* ================= HEADER ================= */}
       <h1 className="text-2xl font-semibold mb-6">Staff Profile</h1>
 
-      {/* ================= PROFILE CARD ================= */}
+      {/* PROFILE CARD */}
       <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6 mb-6 flex gap-6 items-center">
         <div className="w-28 h-28 rounded-full bg-white/20 flex items-center justify-center text-4xl font-bold">
           {profile.username?.charAt(0)}
         </div>
-
         <div className="flex-1">
           <h2 className="text-xl font-semibold">{profile.username}</h2>
           <p className="text-[#00d3d1]">{profile.role}</p>
-          <p className="text-sm text-white/70">{profile.department || "-"}</p>
+          <p className="text-sm text-white/70">
+            {profile.department} ({profile.department_short})
+          </p>
           {profile.designation && (
             <p className="text-sm text-white/70">{profile.designation}</p>
           )}
         </div>
       </div>
 
-      {/* ================= BASIC DETAILS ================= */}
+      {/* BASIC DETAILS */}
       <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6 mb-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <User size={18} /> Basic Details
           </h3>
-
           {!editMode ? (
             <button
               onClick={handleEdit}
@@ -119,41 +116,62 @@ const StaffProfile = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Field
+          {/* NAME */}
+          <InputField
             label="Name"
             value={tempProfile.username}
             disabled={!editMode}
             onChange={(v) => setTempProfile({ ...tempProfile, username: v })}
           />
 
-          <Field
-            label="Department"
-            value={tempProfile.department || ""}
-            disabled={!editMode}
-            onChange={(v) => setTempProfile({ ...tempProfile, department: v })}
-          />
+          {/* DEPARTMENT */}
+          <div>
+            <label className="text-sm text-white/70 mb-1 block">Department</label>
+            <select
+              disabled={!editMode}
+              value={tempProfile.department_id || ""}
+              onChange={(e) => {
+                const deptId = e.target.value;
+                const dept = departments.find((d) => d.id == deptId) || {};
+                setTempProfile({
+                  ...tempProfile,
+                  department_id: deptId,
+                  department: dept.display_name || "",
+                  department_short: dept.name || "",
+                });
+              }}
+              className="bg-black/30 border border-white/10 rounded-xl px-3 py-2 w-full text-white"
+            >
+              <option value="">Select Department</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.display_name} ({d.name})
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <Field
+          {/* DESIGNATION */}
+          <InputField
             label="Designation"
             value={tempProfile.designation || ""}
             disabled={!editMode}
-            onChange={(v) =>
-              setTempProfile({ ...tempProfile, designation: v })
-            }
+            onChange={(v) => setTempProfile({ ...tempProfile, designation: v })}
           />
 
-          <Field label="Role" value={tempProfile.role} disabled />
+          {/* ROLE */}
+          <InputField label="Role" value={tempProfile.role} disabled />
         </div>
       </div>
 
-      {/* ================= CONTACT DETAILS ================= */}
+      {/* CONTACT DETAILS */}
       <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6">
         <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
           <ShieldCheck size={18} /> Contact Details
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Field
+          <InputField
             icon={<Mail size={16} />}
             label="Official Email"
             value={tempProfile.email}
@@ -161,7 +179,7 @@ const StaffProfile = () => {
             onChange={(v) => setTempProfile({ ...tempProfile, email: v })}
           />
 
-          <Field
+          <InputField
             icon={<Phone size={16} />}
             label="Mobile Number"
             value={tempProfile.phone || ""}
@@ -174,8 +192,8 @@ const StaffProfile = () => {
   );
 };
 
-/* ================= FIELD ================= */
-const Field = ({ label, value, onChange, disabled, icon }) => (
+/* INPUT FIELD COMPONENT */
+const InputField = ({ label, value, onChange, disabled, icon }) => (
   <div>
     <label className="text-sm text-white/70 mb-1 block">{label}</label>
     <div className="flex items-center gap-2 bg-black/30 border border-white/10 rounded-xl px-3 py-2">
