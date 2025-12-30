@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Search, Users } from "lucide-react";
 
 const API = "http://localhost:5000/api/admin";
 
@@ -10,6 +10,10 @@ const AdminStudents = () => {
   const [counsellors, setCounsellors] = useState([]);
   const [open, setOpen] = useState(false);
   const [editData, setEditData] = useState(null);
+
+  /* 🔹 DELETE MODAL STATE (UI ONLY) */
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
 
   const [form, setForm] = useState({
     username: "",
@@ -110,24 +114,37 @@ const AdminStudents = () => {
     setOpen(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this student?")) return;
+  /* 🔴 OPEN DELETE POPUP (NO API CHANGE) */
+  const handleDeleteClick = (id) => {
+    setDeleteId(id);
+    setDeleteOpen(true);
+  };
 
+  /* 🔴 CONFIRM DELETE (SAME API AS BEFORE) */
+  const confirmDelete = async () => {
     try {
-      await axios.delete(`${API}/students/${id}`);
+      await axios.delete(`${API}/students/${deleteId}`);
       setStudents((prev) =>
-        prev.filter((s) => s.student_id !== id)
+        prev.filter((s) => s.student_id !== deleteId)
       );
     } catch (err) {
       console.error(err);
+    } finally {
+      setDeleteOpen(false);
+      setDeleteId(null);
     }
   };
 
   /* ================= UI ================= */
   return (
     <div className="p-8">
-      <div className="flex justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Students Management</h1>
+      {/* HEADER */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="flex items-center gap-3 text-2xl font-semibold">
+          <Users className="text-cyan-400" />
+          Students Management
+        </div>
+
         <button
           onClick={() => {
             setEditData(null);
@@ -143,88 +160,187 @@ const AdminStudents = () => {
             });
             setOpen(true);
           }}
-          className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-black rounded"
+          className="flex items-center gap-2 px-4 py-2 bg-cyan-500 text-black rounded-lg"
         >
           <Plus size={16} /> Add Student
         </button>
       </div>
 
-      <table className="w-full text-sm bg-white/10 rounded-xl">
-        <thead className="bg-white/20">
-          <tr>
-            <th>Name</th>
-            <th>Register</th>
-            <th>Email</th>
-            <th>Dept</th>
-            <th>Year</th>
-            <th>Type</th>
-            <th>Counsellor</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
+      {/* TABLE */}
+      <div className="bg-white/10 rounded-2xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-white/20">
+          <tr className="text-center [&>th]:text-center [&>th]:px-0">
 
-        <tbody>
-          {students.map((s) => (
-            <tr key={s.student_id}>
-              <td>{s.username}</td>
-              <td>{s.register_number}</td>
-              <td>{s.email}</td>
-              <td>{s.department}</td>
-              <td>{s.year_of_study}</td>
-              <td>{s.student_type}</td>
-              <td>{s.counsellor}</td>
-              <td className="flex gap-3">
-                <Edit size={16} onClick={() => handleEdit(s)} />
-                <Trash2
-                  size={16}
-                  onClick={() => handleDelete(s.student_id)}
-                />
-              </td>
+            <th className="px-6 py-4 text-center">Name</th>
+            
+              <th>Register</th>
+              <th>Email</th>
+              <th>Dept</th>
+              <th>Year</th>
+              <th>Type</th>
+              <th>Counsellor</th>
+              <th className="pr-6">Action</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
 
-      {open && (
-        <div className="fixed inset-0 bg-black/60 flex justify-center items-center">
-          <div className="bg-zinc-900 p-6 rounded-xl w-[420px] space-y-3">
-            <input name="username" placeholder="Name" className="input" value={form.username} onChange={handleChange} />
-            <input name="register_number" placeholder="Register" className="input" value={form.register_number} onChange={handleChange} />
-            <input name="email" placeholder="Email" className="input" value={form.email} onChange={handleChange} />
-            <input name="phone" placeholder="Phone" className="input" value={form.phone} onChange={handleChange} />
+          <tbody>
+            {students.map((s) => (
+              <tr
+                key={s.student_id}
+                className="border-t border-white/10 hover:bg-white/5"
+              >
+                <td className="px-6 py-4">{s.username}</td>
+                <td>{s.register_number}</td>
+                <td>{s.email}</td>
+                <td>{s.department}</td>
+                <td>{s.year_of_study}</td>
+                <td className="text-cyan-400">{s.student_type}</td>
+                <td>{s.counsellor}</td>
+                <td className="flex gap-3 py-4">
+                  <button
+                    className="px-3 py-1 bg-yellow-600/80 rounded"
+                    onClick={() => handleEdit(s)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="px-3 py-1 bg-red-600/80 rounded"
+                    onClick={() => handleDeleteClick(s.student_id)}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-            <select name="student_type" className="input" value={form.student_type} onChange={handleChange}>
-              <option value="HOSTELLER">Hosteller</option>
-              <option value="DAYSCHOLAR">Dayscholar</option>
-            </select>
-
-            <select className="input" value={form.department_id} onChange={handleDepartmentChange}>
-              <option value="">Select Department</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>{d.display_name}</option>
-              ))}
-            </select>
-
-            <select name="counsellor_id" className="input" value={form.counsellor_id} onChange={handleChange}>
-              <option value="">Select Counsellor</option>
-              {counsellors.map((c) => (
-                <option key={c.id} value={c.id}>{c.username}</option>
-              ))}
-            </select>
-
-            <input name="year_of_study" placeholder="Year" className="input" value={form.year_of_study} onChange={handleChange} />
+      {/* ================= DELETE POPUP (STAFF STYLE) ================= */}
+      {deleteOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="w-[380px] rounded-2xl bg-gradient-to-br from-[#0b1220] to-[#020617] p-6 shadow-2xl border border-white/10">
+            <h2 className="text-lg font-semibold mb-2">Delete Student</h2>
+            <p className="text-white/60 mb-6">
+              Are you sure you want to delete this student?
+            </p>
 
             <div className="flex justify-end gap-3">
-              <button onClick={() => setOpen(false)}>Cancel</button>
-              <button onClick={handleSubmit} className="bg-cyan-500 px-4 py-2 rounded text-black">
-                Save
+              <button
+                onClick={() => setDeleteOpen(false)}
+                className="px-4 py-2 rounded-lg bg-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 rounded-lg bg-red-500 text-white"
+              >
+                Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= STUDENT MODAL (UNCHANGED) ================= */}
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="w-[420px] rounded-2xl bg-gradient-to-br from-[#0b1220] to-[#020617] p-6 shadow-2xl border border-white/10">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold">
+                {editData ? "Update Student" : "Add Student"}
+              </h2>
+              <button
+                onClick={() => setOpen(false)}
+                className="text-white/60 hover:text-white text-xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4 text-sm">
+              <Input label="Name" name="username" value={form.username} onChange={handleChange} />
+              <Input label="Register Number" name="register_number" value={form.register_number} onChange={handleChange} />
+              <Input label="Email" name="email" value={form.email} onChange={handleChange} />
+              <Input label="Phone" name="phone" value={form.phone} onChange={handleChange} />
+
+              <Select
+                label="Student Type"
+                name="student_type"
+                value={form.student_type}
+                onChange={handleChange}
+                options={[
+                  { value: "HOSTELLER", label: "Hosteller" },
+                  { value: "DAYSCHOLAR", label: "Dayscholar" },
+                ]}
+              />
+
+              <Select
+                label="Department"
+                value={form.department_id}
+                onChange={handleDepartmentChange}
+                options={departments.map((d) => ({
+                  value: d.id,
+                  label: d.display_name,
+                }))}
+              />
+
+              <Select
+                label="Counsellor"
+                name="counsellor_id"
+                value={form.counsellor_id}
+                onChange={handleChange}
+                options={counsellors.map((c) => ({
+                  value: c.id,
+                  label: c.username,
+                }))}
+              />
+
+              <Input label="Year" name="year_of_study" value={form.year_of_study} onChange={handleChange} />
+            </div>
+
+            <button
+              onClick={handleSubmit}
+              className="w-full mt-6 py-3 rounded-xl bg-cyan-500 text-black font-semibold"
+            >
+              {editData ? "Update Student" : "Create Student"}
+            </button>
           </div>
         </div>
       )}
     </div>
   );
 };
+
+/* ================= REUSABLE INPUT ================= */
+const Input = ({ label, ...props }) => (
+  <div>
+    <label className="text-white/60">{label}</label>
+    <input
+      {...props}
+      className="w-full mt-1 px-4 py-2 rounded-lg bg-white/10 text-white outline-none"
+    />
+  </div>
+);
+
+/* ================= REUSABLE SELECT ================= */
+const Select = ({ label, options, ...props }) => (
+  <div>
+    <label className="text-white/60">{label}</label>
+    <select
+      {...props}
+      className="w-full mt-1 px-4 py-2 rounded-lg bg-white/10 text-white outline-none"
+    >
+      <option value="">Select {label}</option>
+      {options.map((opt) => (
+        <option key={opt.value} value={opt.value} className="text-black bg-white">
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  </div>
+);
 
 export default AdminStudents;

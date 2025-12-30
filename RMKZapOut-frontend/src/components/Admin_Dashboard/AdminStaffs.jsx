@@ -1,19 +1,32 @@
 import { useEffect, useState } from "react";
 import { Users, UserPlus, Search, Trash2, X } from "lucide-react";
-import { fetchStaffs, createStaff, deleteStaff, updateStaff } from "../../services/adminStaffService";
+import {
+  fetchStaffs,
+  createStaff,
+  deleteStaff,
+  updateStaff,
+} from "../../services/adminStaffService";
 
-const glass = "bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl";
 const DEPARTMENTS = ["CSE", "IT", "ECE", "EEE", "MECH"];
 
 const AdminStaffs = () => {
   const loggedInUser = JSON.parse(localStorage.getItem("user"));
-  const adminId = loggedInUser?.role === "ADMIN" ? loggedInUser?.id : null;
+  const adminId =
+    loggedInUser?.role === "ADMIN" ? loggedInUser?.id : null;
 
   const [staffs, setStaffs] = useState([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
+
   const [showModal, setShowModal] = useState(false);
   const [editStaffId, setEditStaffId] = useState(null);
+
+  const [popupMsg, setPopupMsg] = useState("");
+
+  // 🔴 DELETE CONFIRMATION STATE
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteStaffId, setDeleteStaffId] = useState(null);
+
   const [form, setForm] = useState({
     id: null,
     username: "",
@@ -21,102 +34,106 @@ const AdminStaffs = () => {
     phone: "",
     role: "COUNSELLOR",
     department: "CSE",
-    is_active: false, // track active status
+    is_active: false,
   });
 
-  /* Load all staff */
+  /* popup */
+  const showPopup = (msg) => {
+    setPopupMsg(msg);
+    setTimeout(() => setPopupMsg(""), 2000);
+  };
+
+  /* load staffs */
   const loadStaffs = async () => {
     const res = await fetchStaffs();
-    setStaffs(res.data.map(s => ({
-      id: s.id,
-      username: s.username,
-      email: s.email,
-      phone: s.phone || "",
-      role: s.role,
-      department: s.department || "-",
-      is_active: s.is_active === 1,
-    })));
-  };
-useEffect(() => {
-  const fetchData = async () => {
-    try {
-      const res = await fetchStaffs();
-      setStaffs(
-        res.data.map(s => ({
-          id: s.id,
-          username: s.username,
-          email: s.email,
-          phone: s.phone || "",
-          role: s.role,
-          department: s.department || "-",
-          is_active: s.is_active === 1,
-        }))
-      );
-    } catch (err) {
-      console.error("Failed to fetch staffs", err);
-    }
+    setStaffs(
+      res.data.map((s) => ({
+        id: s.id,
+        username: s.username,
+        email: s.email,
+        phone: s.phone || "",
+        role: s.role,
+        department: s.department || "-",
+        is_active: s.is_active === 1,
+      }))
+    );
   };
 
-  fetchData();
-}, []);
+  useEffect(() => {
+    loadStaffs();
+  }, []);
 
-
-  /* Save Staff (create/update) */
+  /* save staff */
   const handleSaveStaff = async () => {
     if (editStaffId) {
       await updateStaff(editStaffId, adminId || loggedInUser?.id, form);
+      showPopup("Staff updated");
     } else {
       await createStaff({ adminId, ...form });
+      showPopup("Staff added");
     }
     setShowModal(false);
     setEditStaffId(null);
-    setForm({ id: null, username: "", email: "", phone: "", role: "COUNSELLOR", department: "CSE", is_active: false });
     loadStaffs();
   };
 
-  /* Delete staff */
-  const handleDeleteStaff = async (staffId) => {
-    if (!window.confirm("Delete this staff permanently?")) return;
-    await deleteStaff(staffId, adminId);
+  /* open delete confirmation */
+  const handleDeleteClick = (id) => {
+    setDeleteStaffId(id);
+    setShowDeleteConfirm(true);
+  };
+
+  /* confirm delete */
+  const confirmDeleteStaff = async () => {
+    await deleteStaff(deleteStaffId, adminId);
+    setShowDeleteConfirm(false);
+    setDeleteStaffId(null);
+    showPopup("Staff deleted");
     loadStaffs();
   };
 
-  /* Edit staff */
-  const handleEditStaff = (staff) => {
+  /* edit staff */
+  const handleEditStaff = (s) => {
     setForm({
-      id: staff.id,
-      username: staff.username,
-      email: staff.email,
-      phone: staff.phone,
-      role: staff.role,
-      department: staff.department === "-" ? "CSE" : staff.department,
-      is_active: staff.is_active,
+      id: s.id,
+      username: s.username,
+      email: s.email,
+      phone: s.phone,
+      role: s.role,
+      department: s.department === "-" ? "CSE" : s.department,
+      is_active: s.is_active,
     });
-    setEditStaffId(staff.id);
+    setEditStaffId(s.id);
     setShowModal(true);
   };
 
-  /* Filter staff */
+  /* filters */
   const filteredStaffs = staffs.filter((s) => {
-    const matchesSearch = s.username.toLowerCase().includes(search.toLowerCase()) || s.email.toLowerCase().includes(search.toLowerCase());
-    const matchesRole = roleFilter === "All" || s.role === roleFilter;
-    return matchesSearch && matchesRole;
+    const matchSearch =
+      s.username.toLowerCase().includes(search.toLowerCase()) ||
+      s.email.toLowerCase().includes(search.toLowerCase());
+    const matchRole =
+      roleFilter === "All" || s.role === roleFilter;
+    return matchSearch && matchRole;
   });
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="p-8 space-y-6 relative">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-white flex items-center gap-2">
-          <Users className="text-cyan-400" />
-          Staff Management
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-semibold text-white flex gap-2">
+          <Users className="text-cyan-400" /> Staff Management
         </h1>
+
         {adminId && (
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30"
+            className="px-4 py-2 rounded-xl bg-cyan-600 text-black font-medium"
           >
-            <UserPlus size={18} />
+            <UserPlus
+              size={16}
+              className="inline mr-1 text-cyan-200"
+            />
             Add Staff
           </button>
         )}
@@ -124,18 +141,18 @@ useEffect(() => {
 
       {/* Filters */}
       <div className="flex gap-4">
-        <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-2">
-          <Search size={18} className="text-white/60" />
+        <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-xl">
+          <Search size={16} />
           <input
-            placeholder="Search..."
-            className="bg-transparent outline-none text-white"
+            placeholder="Search staff..."
+            className="bg-transparent outline-none text-white placeholder-white/40"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
         <select
-          className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white"
+          className="bg-white/10 px-4 py-2 rounded-xl text-white"
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
         >
@@ -147,115 +164,151 @@ useEffect(() => {
         </select>
       </div>
 
-      {/* Staff Table */}
-  <div className={`${glass} overflow-x-auto`}>
-  <table className="w-full text-white text-sm table-fixed border-collapse">
-    <thead className="bg-white/10">
-      <tr>
-        <th className="px-6 py-4 w-[150px] text-center">Name</th>
-        <th className="px-6 py-4 w-[200px] text-center">Email</th>
-        <th className="px-6 py-4 w-[120px] text-center">Phone</th>
-        <th className="px-6 py-4 w-[120px] text-center">Role</th>
-        <th className="px-6 py-4 w-[120px] text-center">Department</th>
-        <th className="px-6 py-4 w-[160px] text-center">Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      {filteredStaffs.map((s) => (
-        <tr key={s.id} className="border-t border-white/10">
-          <td className="px-6 py-4 max-w-[150px] overflow-hidden text-ellipsis whitespace-nowrap text-center">{s.username}</td>
-          <td className="px-6 py-4 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap text-center">{s.email}</td>
-          <td className="px-6 py-4 max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap text-center">{s.phone}</td>
-          <td className="px-6 py-4 max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap text-center text-cyan-300">{s.role}</td>
-          <td className="px-6 py-4 max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap text-center">{s.department}</td>
-          <td className="px-6 py-4 flex justify-center gap-2">
-            {(adminId || (s.is_active && s.id === loggedInUser?.id)) && (
-              <button
-                onClick={() => handleEditStaff(s)}
-                className="flex items-center gap-1 px-3 py-1 rounded-lg bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30"
+      {/* Table */}
+      <div className="bg-white/5 backdrop-blur-xl rounded-2xl overflow-hidden relative">
+        <table className="w-full text-white text-sm">
+          <thead className="bg-white/10">
+            <tr>
+              <th className="py-4">Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Role</th>
+              <th>Department</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredStaffs.map((s) => (
+              <tr
+                key={s.id}
+                className="border-t border-white/10 text-center"
               >
-                Edit
-              </button>
-            )}
-            {adminId && (
-              <button
-                onClick={() => handleDeleteStaff(s.id)}
-                className="flex items-center gap-1 px-3 py-1 rounded-lg bg-red-500/20 text-red-300 hover:bg-red-500/30"
-              >
-                <Trash2 size={14} /> Delete
-              </button>
-            )}
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
+                <td className="py-3">{s.username}</td>
+                <td>{s.email}</td>
+                <td>{s.phone}</td>
+                <td className="text-cyan-300">{s.role}</td>
+                <td>{s.department}</td>
+                <td className="flex justify-center gap-2 py-3">
+                  <button
+                    onClick={() => handleEditStaff(s)}
+                    className="px-3 py-1 rounded bg-yellow-500/30"
+                  >
+                    Edit
+                  </button>
+                  {adminId && (
+                    <button
+                      onClick={() => handleDeleteClick(s.id)}
+                      className="px-3 py-1 rounded bg-red-500/30"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
+        {/* Popup message */}
+        {popupMsg && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-xl bg-cyan-500 text-black font-medium shadow-lg">
+            {popupMsg}
+          </div>
+        )}
+      </div>
 
-      {/* Modal */}
+      {/* ADD / EDIT MODAL */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center">
-          <div className="bg-[#0f172a] p-6 rounded-2xl w-96 space-y-3">
-            <div className="flex justify-between">
-              <h2 className="text-white font-semibold">{editStaffId ? "Edit Staff" : "Add Staff"}</h2>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="w-[420px] rounded-2xl bg-gradient-to-br from-[#0b1220] to-[#020617] border border-white/10 p-6">
+            <div className="flex justify-between items-center mb-5">
+              <h2 className="text-lg font-semibold text-white">
+                {editStaffId ? "Edit Staff" : "Add Staff"}
+              </h2>
               <X
-                onClick={() => {
-                  setShowModal(false);
-                  setEditStaffId(null);
-                  setForm({ id: null, username: "", email: "", phone: "", role: "COUNSELLOR", department: "CSE", is_active: false });
-                }}
-                className="cursor-pointer"
+                className="cursor-pointer text-white/70 hover:text-white"
+                onClick={() => setShowModal(false)}
               />
             </div>
 
-            {/* Input fields */}
-            {["username", "email", "phone"].map((f) => (
-              <input
-                key={f}
-                placeholder={f.replace("_", " ")}
-                className="w-full p-2 rounded bg-white/10 text-white"
-                value={form[f]}
-                onChange={(e) => setForm({ ...form, [f]: e.target.value })}
-                disabled={
-                  !adminId &&
-                  (!form.is_active || form.id !== loggedInUser?.id)
+            <div className="space-y-4">
+              {["username", "email", "phone"].map((field) => (
+                <div key={field}>
+                  <label className="text-xs text-white/60 capitalize">
+                    {field}
+                  </label>
+                  <input
+                    className="w-full mt-1 px-3 py-2 rounded-lg bg-white/10 text-white outline-none placeholder-white/40"
+                    placeholder={`Enter ${field}`}
+                    value={form[field]}
+                    onChange={(e) =>
+                      setForm({ ...form, [field]: e.target.value })
+                    }
+                  />
+                </div>
+              ))}
+
+              <select
+                className="w-full px-3 py-2 rounded-lg bg-[#0f172a] text-white border border-white/10"
+                value={form.role}
+                onChange={(e) =>
+                  setForm({ ...form, role: e.target.value })
                 }
-              />
-            ))}
+              >
+                <option value="COUNSELLOR">Counsellor</option>
+                <option value="COORDINATOR">Coordinator</option>
+                <option value="HOD">HOD</option>
+                <option value="WARDEN">Warden</option>
+              </select>
 
-            {/* Only Admin can edit role & department */}
-            {adminId && (
-              <>
-                <select
-                  className="w-full p-2 rounded bg-white/10 text-white"
-                  value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value })}
-                >
-                  <option value="COUNSELLOR">Counsellor</option>
-                  <option value="COORDINATOR">Coordinator</option>
-                  <option value="HOD">HOD</option>
-                  <option value="WARDEN">Warden</option>
-                </select>
-
-                <select
-                  className="w-full p-2 rounded bg-white/10 text-white"
-                  value={form.department}
-                  onChange={(e) => setForm({ ...form, department: e.target.value })}
-                >
-                  {DEPARTMENTS.map((d) => (
-                    <option key={d}>{d}</option>
-                  ))}
-                </select>
-              </>
-            )}
+              <select
+                className="w-full px-3 py-2 rounded-lg bg-[#0f172a] text-white border border-white/10"
+                value={form.department}
+                onChange={(e) =>
+                  setForm({ ...form, department: e.target.value })
+                }
+              >
+                {DEPARTMENTS.map((d) => (
+                  <option key={d}>{d}</option>
+                ))}
+              </select>
+            </div>
 
             <button
               onClick={handleSaveStaff}
-              className="w-full py-2 rounded bg-cyan-500 text-black font-semibold"
+              className="w-full mt-6 py-2 rounded-xl bg-cyan-500 text-black font-semibold"
             >
               {editStaffId ? "Update Staff" : "Create Staff"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🔥 DELETE CONFIRM MODAL */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="w-[360px] rounded-2xl bg-gradient-to-br from-[#0b1220] to-[#020617] border border-white/10 p-6 text-center">
+            <h3 className="text-lg font-semibold text-white mb-3">
+              Delete Staff
+            </h3>
+            <p className="text-white/70 mb-6">
+              Are you sure you want to delete this staff?
+            </p>
+
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 rounded-xl bg-white/10 text-white hover:bg-white/20"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteStaff}
+                className="px-4 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}
