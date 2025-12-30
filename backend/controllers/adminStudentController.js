@@ -7,7 +7,7 @@ export const getDepartments = async (req, res) => {
       "SELECT id, display_name FROM departments"
     );
     res.json(rows);
-  } catch {
+  } catch (err) {
     res.status(500).json({ message: "Failed to load departments" });
   }
 };
@@ -59,6 +59,27 @@ export const getAllStudents = async (req, res) => {
   }
 };
 
+/* ================= GET UNASSIGNED STUDENTS ================= */
+export const getUnassignedStudents = async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT 
+        s.id AS student_id,
+        u.username,
+        u.register_number,
+        d.display_name AS department
+      FROM students s
+      JOIN users u ON s.user_id = u.id
+      LEFT JOIN departments d ON s.department_id = d.id
+      WHERE s.counsellor_id IS NULL`
+    );
+
+    res.json(rows);
+  } catch {
+    res.status(500).json({ message: "Failed to load unassigned students" });
+  }
+};
+
 /* ================= CREATE STUDENT ================= */
 export const createStudent = async (req, res) => {
   const {
@@ -68,7 +89,7 @@ export const createStudent = async (req, res) => {
     phone,
     student_type,
     department_id,
-    counsellor_id,
+    counsellor_id = null, // OPTIONAL
     year_of_study,
   } = req.body;
 
@@ -88,12 +109,18 @@ export const createStudent = async (req, res) => {
       `INSERT INTO students
        (user_id, department_id, counsellor_id, year_of_study, student_type)
        VALUES (?, ?, ?, ?, ?)`,
-      [userResult.insertId, department_id, counsellor_id, year_of_study, student_type]
+      [
+        userResult.insertId,
+        department_id,
+        counsellor_id || null,
+        year_of_study,
+        student_type,
+      ]
     );
 
     await conn.commit();
     res.status(201).json({ message: "Student created successfully" });
-  } catch {
+  } catch (err) {
     await conn.rollback();
     res.status(500).json({ message: "Student creation failed" });
   } finally {
@@ -101,7 +128,26 @@ export const createStudent = async (req, res) => {
   }
 };
 
-/* ================= UPDATE STUDENT (FULL) ================= */
+/* ================= COUNSELLOR ASSIGN STUDENT ================= */
+export const assignStudentToCounsellor = async (req, res) => {
+  const { studentId } = req.params;
+  const { counsellorId } = req.body;
+
+  try {
+    await db.query(
+      `UPDATE students
+       SET counsellor_id = ?
+       WHERE id = ? AND counsellor_id IS NULL`,
+      [counsellorId, studentId]
+    );
+
+    res.json({ message: "Student assigned successfully" });
+  } catch {
+    res.status(500).json({ message: "Assignment failed" });
+  }
+};
+
+/* ================= UPDATE STUDENT ================= */
 export const updateStudent = async (req, res) => {
   const { studentId } = req.params;
   const {
@@ -132,7 +178,13 @@ export const updateStudent = async (req, res) => {
       `UPDATE students
        SET department_id=?, counsellor_id=?, year_of_study=?, student_type=?
        WHERE id=?`,
-      [department_id, counsellor_id, year_of_study, student_type, studentId]
+      [
+        department_id,
+        counsellor_id || null,
+        year_of_study,
+        student_type,
+        studentId,
+      ]
     );
 
     await conn.commit();
