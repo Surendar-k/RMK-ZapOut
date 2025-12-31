@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { checkEmail, loginUser, updatePassword } from "../services/authService.jsx";
 import { useNavigate } from "react-router-dom";
-import loginImage from "../assets/login-illustration.jpg";
+import loginBg from "../assets/login-bg-smart-gate.png";
 import logo from "../assets/zaplogo.png";
 
 const Login = () => {
@@ -24,7 +24,6 @@ const Login = () => {
     else if (step === 3) newPassRef.current?.focus();
   }, [step]);
 
-  // Step 1: Verify email
   const handleContinue = async () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -40,179 +39,250 @@ const Login = () => {
     }
   };
 
-  // Step 2: Login
-const handleLogin = async () => {
-  if (!password) {
-    setError("Please enter your password");
-    return;
-  }
+  const handleLogin = async () => {
+    if (!password) {
+      setError("Please enter your password");
+      return;
+    }
+    try {
+      const res = await loginUser(email, password);
+      const { user, token } = res.data;
 
-  try {
-    const res = await loginUser(email, password);
-    const { user, token } = res.data;
+      localStorage.setItem("user", JSON.stringify(user));
+      if (token) localStorage.setItem("token", token);
 
-    // SAVE USER SESSION
-    localStorage.setItem("user", JSON.stringify(user));
-    if (token) localStorage.setItem("token", token);
+      if (user.isFirstLogin) {
+        setStep(3);
+        return;
+      }
 
-    if (user.isFirstLogin) {
-      setStep(3);
+      const role =
+        user.role ||
+        user.user_role ||
+        user.role_name ||
+        user.userRole;
+
+      navigateByRole(role);
+      setError("");
+    } catch (err) {
+      setError(err.response?.data?.message || "Invalid credentials");
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      setError("Please fill all fields");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+    try {
+      await updatePassword(email, newPassword);
+      const res = await loginUser(email, newPassword);
+      const { user, token } = res.data;
+
+      localStorage.setItem("user", JSON.stringify(user));
+      if (token) localStorage.setItem("token", token);
+
+      const role =
+        user.role ||
+        user.user_role ||
+        user.role_name ||
+        user.userRole;
+
+      navigateByRole(role);
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to update password");
+    }
+  };
+
+  const navigateByRole = (role) => {
+    if (!role) {
+      setError("User role not assigned. Contact admin.");
       return;
     }
 
-    // 🔹 SAFE ROLE FETCH
-    const role =
-      user.role ||
-      user.user_role ||
-      user.role_name ||
-      user.userRole;
-
-    navigateByRole(role);
-
-    setError("");
-  } catch (err) {
-    setError(err.response?.data?.message || "Invalid credentials");
-  }
-};
-
-
-  // Step 3: Reset first-time password
-const handleResetPassword = async () => {
-  if (!newPassword || !confirmPassword) {
-    setError("Please fill all fields");
-    return;
-  }
-
-  if (newPassword !== confirmPassword) {
-    setError("Passwords do not match");
-    return;
-  }
-
-  try {
-    await updatePassword(email, newPassword);
-
-    const res = await loginUser(email, newPassword);
-    const { user, token } = res.data;
-
-    localStorage.setItem("user", JSON.stringify(user));
-    if (token) localStorage.setItem("token", token);
-
-    const role =
-      user.role ||
-      user.user_role ||
-      user.role_name ||
-      user.userRole;
-
-    navigateByRole(role);
-  } catch (err) {
-    setError(err.response?.data?.message || "Failed to update password");
-  }
-};
-
-
-const navigateByRole = (role) => {
-  if (!role) {
-    setError("User role not assigned. Contact admin.");
-    return;
-  }
-
-  const normalizedRole = role.toLowerCase();
-
-  if (normalizedRole === "student") {
-    navigate("/student/dashboard");
-  }
-   else if (
-   
-    normalizedRole === "staff" ||
-    normalizedRole === "hod" ||
-    normalizedRole === "counsellor" ||
-    normalizedRole === "coordinator" ||
-    normalizedRole === "warden"
-  ) {
-    navigate("/staff/dashboard");
-  }
-  else if (normalizedRole === "admin") { 
-  navigate("/admin/dashboard");
-}
-
-  else {
-    setError("Invalid user role");
-  }
-};
-
+    const r = role.toLowerCase();
+    if (r === "student") navigate("/student/dashboard");
+    else if (
+      r === "staff" ||
+      r === "hod" ||
+      r === "counsellor" ||
+      r === "coordinator" ||
+      r === "warden"
+    )
+      navigate("/staff/dashboard");
+    else if (r === "admin") navigate("/admin/dashboard");
+    else setError("Invalid user role");
+  };
 
   return (
-    <div className="min-h-screen w-full bg-[#020617] relative overflow-hidden">
+    <div
+      className="min-h-screen w-full flex items-center justify-center relative overflow-hidden"
+      style={{
+        backgroundImage: `url(${loginBg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center top",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      {/* Background overlay */}
+      <div className="absolute inset-0 bg-black/10" />
 
-      {/* Background Glow */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-cyan-400/20 blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-blue-500/20 blur-[120px]" />
+      {/* BOTTOM LEFT – AUTHORIZATION (MOVED + DARKER) */}
+      <div className="absolute left-10 bottom-10 text-white/80 max-w-xs space-y-2">
+        <h3 className="text-sm font-semibold">🛡️ Secure Authorization</h3>
+        <p className="text-xs">📝 Gate Pass & On-Duty workflow</p>
+        <p className="text-xs">⏱️ Real-time approval checks</p>
+        <p className="text-xs">🚦 Controlled campus access</p>
       </div>
 
-      <div className="relative z-10 flex min-h-screen">
+      {/* Halo */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div className="w-[520px] h-[700px] rounded-full bg-cyan-500/15 blur-3xl" />
+      </div>
 
-        {/* LEFT IMAGE */}
-        <div className="w-1/2 relative overflow-hidden">
-          <div className="absolute inset-0" style={{ clipPath: "polygon(0 0, 92% 0, 100% 50%, 92% 100%, 0 100%)" }}>
-            <img src={loginImage} alt="Secure Campus" className="w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/40" />
-          </div>
-          <div className="absolute bottom-10 left-10 max-w-md text-white">
-            <h2 className="text-3xl font-semibold mb-4">Secure Campus Digital Access</h2>
-            <p className="text-sm text-gray-200 leading-relaxed">
-              RMK ZapOut enables secure email-based access with role-driven authorization and real-time verification.
-            </p>
-          </div>
+      {/* LOGIN CARD */}
+      <div
+        className={`relative z-10 w-[460px] min-h-[640px] rounded-2xl p-10
+        bg-[#0b1220]/85 backdrop-blur-sm transition-all duration-300
+        ${
+          error
+            ? "border border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.9)]"
+            : "border border-white/20 shadow-[0_25px_60px_rgba(0,0,0,0.8)]"
+        }
+        flex flex-col`}
+      >
+        <div className="flex-grow">
+          <img src={logo} alt="RMK ZapOut" className="mx-auto h-28 mb-6" />
+
+          <h1 className="text-white text-3xl font-semibold text-center">
+            Welcome back!
+          </h1>
+
+          <p className="text-cyan-400 text-center mt-2">
+            Securely logging you into RMKEC
+          </p>
+
+          <p className="text-gray-300 text-sm text-center mt-3">
+            {step === 1
+              ? "Enter your official email address"
+              : step === 2
+              ? "Enter your password"
+              : "Set a new password"}
+          </p>
+
+          {/* STEP 1 */}
+          {step === 1 && (
+            <>
+              <input
+                ref={emailRef}
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError("");
+                }}
+                onKeyDown={(e) => e.key === "Enter" && handleContinue()}
+                placeholder="Enter Your Mail id"
+                className={`mt-8 w-full h-12 px-4 rounded-md bg-white/10 text-white
+                placeholder-gray-400 outline-none transition-all
+                ${
+                  error
+                    ? "border border-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]"
+                    : "border border-cyan-400/50 focus:ring-2 focus:ring-cyan-500"
+                }`}
+              />
+
+              <button
+                onClick={handleContinue}
+                className="mt-10 w-full h-12 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
+              >
+                Continue
+              </button>
+            </>
+          )}
+
+          {/* STEP 2 */}
+          {step === 2 && (
+            <>
+              <div className="flex justify-between items-center text-sm text-gray-300 mb-3">
+                <span>{email}</span>
+                <button
+                  onClick={() => setStep(1)}
+                  className="text-cyan-400 hover:underline"
+                >
+                  Change
+                </button>
+              </div>
+
+              <input
+                ref={passRef}
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError("");
+                }}
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                placeholder="Enter your password"
+                className={`mt-2 w-full h-12 px-4 rounded-md bg-white/10 text-white
+                placeholder-gray-400 outline-none transition-all
+                ${
+                  error
+                    ? "border border-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]"
+                    : "border border-cyan-400/30 focus:ring-2 focus:ring-cyan-500"
+                }`}
+              />
+
+              <button
+                onClick={handleLogin}
+                className="mt-10 w-full h-12 rounded-md bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold"
+              >
+                Login
+              </button>
+            </>
+          )}
+
+          {/* STEP 3 */}
+          {step === 3 && (
+            <>
+              <input
+                ref={newPassRef}
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+                className="mt-8 w-full h-12 px-4 rounded-md bg-white/10 text-white"
+              />
+
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter new password"
+                className="mt-4 w-full h-12 px-4 rounded-md bg-white/10 text-white"
+              />
+
+              <button
+                onClick={handleResetPassword}
+                className="mt-10 w-full h-12 rounded-md bg-indigo-600 text-white"
+              >
+                Update Password
+              </button>
+            </>
+          )}
+
+          {error && (
+            <p className="text-red-400 text-xs mt-4 text-center">{error}</p>
+          )}
         </div>
 
-        {/* RIGHT LOGIN CARD */}
-        <div className="w-1/2 flex items-center justify-center">
-          <div className="w-[420px] h-[600px] rounded-2xl p-8 bg-white/10 backdrop-blur-xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.6)] flex flex-col justify-between">
-            <div>
-              <img src={logo} alt="RMK ZapOut" className="mx-auto h-40 mb-2" />
-              <h1 className="text-white text-3xl font-semibold text-center">Welcome back!</h1>
-              <h2 className="text-cyan-400 text-xl text-center mt-2">Login to Get Started</h2>
-
-              <p className="text-gray-300 text-sm text-center mt-1">
-                {step === 1 ? "Enter your official email address" : step === 2 ? "Enter your password" : "Set a new password"}
-              </p>
-
-              {/* STEP 1: EMAIL */}
-              {step === 1 && (
-                <>
-                  <input ref={emailRef} type="email" value={email} onChange={(e) => { setEmail(e.target.value); setError(""); }} onKeyDown={(e) => e.key === "Enter" && handleContinue()} placeholder="example@rmkec.ac.in" className="mt-6 w-full h-12 px-4 rounded-md bg-white/10 text-white placeholder-gray-400 border border-cyan-400/40 focus:ring-2 focus:ring-indigo-500 outline-none"/>
-                  <button onClick={handleContinue} className="mt-10 w-full h-12 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-semibold transition">Continue</button>
-                </>
-              )}
-
-              {/* STEP 2: PASSWORD */}
-              {step === 2 && (
-                <>
-                  <div className="flex justify-between text-xs text-white mb-2">
-                    <span>{email}</span>
-                    <button onClick={() => setStep(1)} className="text-indigo-400 hover:underline">Change</button>
-                  </div>
-                  <input ref={passRef} type="password" value={password} onChange={(e) => { setPassword(e.target.value); setError(""); }} onKeyDown={(e) => e.key === "Enter" && handleLogin()} placeholder="Enter your password" className="mt-2 w-full px-4 py-3 rounded-md bg-white/10 text-white placeholder-gray-400 border border-white/10 focus:ring-2 focus:ring-indigo-500 outline-none"/>
-                  <button onClick={handleLogin} className="mt-10 w-full py-3 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition">Login</button>
-                </>
-              )}
-
-              {/* STEP 3: FIRST-TIME PASSWORD RESET */}
-              {step === 3 && (
-                <>
-                  <input ref={newPassRef} type="password" value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setError(""); }} placeholder="Enter new password" className="mt-6 w-full h-12 px-4 rounded-md bg-white/10 text-white placeholder-gray-400 border border-cyan-400/40 focus:ring-2 focus:ring-indigo-500 outline-none"/>
-                  <input type="password" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setError(""); }} placeholder="Re-enter new password" className="mt-4 w-full h-12 px-4 rounded-md bg-white/10 text-white placeholder-gray-400 border border-cyan-400/40 focus:ring-2 focus:ring-indigo-500 outline-none"/>
-                  <button onClick={handleResetPassword} className="mt-10 w-full py-3 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition">Update Password</button>
-                </>
-              )}
-
-              {error && <p className="text-red-400 text-xs mt-4 text-center">{error}</p>}
-            </div>
-
-            <p className="text-center text-xs text-white">Designed by IT Department · RMKEC IT</p>
-          </div>
-        </div>
+        <p className="text-center text-xs text-gray-300 mt-8">
+          Designed by IT Department · RMKEC IT
+        </p>
       </div>
     </div>
   );
