@@ -7,11 +7,27 @@ import {
   updateStaff,
 } from "../../services/adminStaffService";
 
+/* ---------------- CONSTANTS ---------------- */
+
 const DEPARTMENTS = ["CSE", "IT", "ECE", "EEE", "MECH"];
+
+const EMPTY_FORM = {
+  id: null,
+  username: "",
+  email: "",
+  phone: "",
+  role: "",          // placeholder state
+  department: "",    // placeholder state
+  is_active: false,
+};
+
+/* ---------------- COMPONENT ---------------- */
 
 const AdminStaffs = () => {
   const loggedInUser = JSON.parse(localStorage.getItem("user"));
   const adminId = loggedInUser?.role === "ADMIN" ? loggedInUser?.id : null;
+
+  /* ---------------- STATE ---------------- */
 
   const [staffs, setStaffs] = useState([]);
   const [search, setSearch] = useState("");
@@ -22,27 +38,18 @@ const AdminStaffs = () => {
 
   const [popupMsg, setPopupMsg] = useState(null);
 
-  // 🔴 DELETE CONFIRMATION STATE
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteStaffId, setDeleteStaffId] = useState(null);
 
-  const [form, setForm] = useState({
-    id: null,
-    username: "",
-    email: "",
-    phone: "",
-    role: "COUNSELLOR",
-    department: "CSE",
-    is_active: false,
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
 
-  /* popup */
-  const showPopup = (msg, type = "success") => {
-    setPopupMsg({ text: msg, type });
-    setTimeout(() => setPopupMsg(null), 3000);
+  /* ---------------- HELPERS ---------------- */
+
+  const showPopup = (msg) => {
+    setPopupMsg(msg);
+    setTimeout(() => setPopupMsg(""), 2000);
   };
 
-  /* load staffs */
   const loadStaffs = async () => {
     try {
       const res = await fetchStaffs();
@@ -70,7 +77,8 @@ const AdminStaffs = () => {
     loadStaffs();
   }, []);
 
-  /* save staff */
+  /* ---------------- CRUD ---------------- */
+
   const handleSaveStaff = async () => {
     try {
       if (editStaffId) {
@@ -90,15 +98,17 @@ const AdminStaffs = () => {
         "error"
       );
     }
+    setShowModal(false);
+    setEditStaffId(null);
+    setForm(EMPTY_FORM);
+    loadStaffs();
   };
 
-  /* open delete confirmation */
   const handleDeleteClick = (id) => {
     setDeleteStaffId(id);
     setShowDeleteConfirm(true);
   };
 
-  /* confirm delete */
   const confirmDeleteStaff = async () => {
     try {
       const res = await deleteStaff(deleteStaffId, adminId);
@@ -115,7 +125,6 @@ const AdminStaffs = () => {
     }
   };
 
-  /* edit staff */
   const handleEditStaff = (s) => {
     setForm({
       id: s.id,
@@ -123,21 +132,31 @@ const AdminStaffs = () => {
       email: s.email,
       phone: s.phone,
       role: s.role,
-      department: s.department === "-" ? "CSE" : s.department,
+      department: s.department === "-" ? "" : s.department,
       is_active: s.is_active,
     });
     setEditStaffId(s.id);
     setShowModal(true);
   };
 
-  /* filters */
+  /* ---------------- FILTER ---------------- */
+
   const filteredStaffs = staffs.filter((s) => {
     const matchSearch =
       s.username.toLowerCase().includes(search.toLowerCase()) ||
       s.email.toLowerCase().includes(search.toLowerCase());
-    const matchRole = roleFilter === "All" || s.role === roleFilter;
+
+    const matchRole =
+      roleFilter === "All"
+        ? true
+        : roleFilter === "OTHERS"
+        ? !["COUNSELLOR", "COORDINATOR", "HOD"].includes(s.role)
+        : s.role === roleFilter;
+
     return matchSearch && matchRole;
   });
+
+  /* ---------------- UI ---------------- */
 
   return (
     <div className="p-8 space-y-6 relative">
@@ -147,33 +166,23 @@ const AdminStaffs = () => {
           <Users className="text-cyan-400" /> Staff Management
         </h1>
 
-       {adminId && (
-  <button
-    onClick={() => {
-      // Reset form and edit ID when adding new staff
-      setForm({
-        id: null,
-        username: "",
-        email: "",
-        phone: "",
-        role: "COUNSELLOR",
-        department: "CSE",
-        is_active: false,
-      });
-      setEditStaffId(null); // important
-      setShowModal(true);
-    }}
-    className="px-4 py-2 rounded-xl bg-cyan-600 text-black font-medium"
-  >
-    <UserPlus size={16} className="inline mr-1 text-cyan-200" />
-    Add Staff
-  </button>
-)}
-
+        {adminId && (
+          <button
+            onClick={() => {
+              setEditStaffId(null);
+              setForm(EMPTY_FORM);
+              setShowModal(true);
+            }}
+            className="px-4 py-2 rounded-xl bg-cyan-600 text-black font-medium"
+          >
+            <UserPlus size={16} className="inline mr-1 text-cyan-200" />
+            Add Staff
+          </button>
+        )}
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-4">
+      {/* Search + Role Cards */}
+      <div className="flex gap-4 items-center flex-wrap">
         <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-xl">
           <Search size={16} />
           <input
@@ -184,17 +193,28 @@ const AdminStaffs = () => {
           />
         </div>
 
-        <select
-          className="bg-white/10 px-4 py-2 rounded-xl text-white"
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value)}
-        >
-          <option value="All">All Roles</option>
-          <option value="COUNSELLOR">Counsellor</option>
-          <option value="COORDINATOR">Coordinator</option>
-          <option value="HOD">HOD</option>
-          <option value="WARDEN">Warden</option>
-        </select>
+        <div className="flex gap-4">
+          {[
+            { label: "All", value: "All" },
+            { label: "Counsellor", value: "COUNSELLOR" },
+            { label: "Branch Coordinator", value: "COORDINATOR" },
+            { label: "HOD", value: "HOD" },
+            { label: "Others", value: "OTHERS" },
+          ].map((card) => (
+            <div
+              key={card.value}
+              onClick={() => setRoleFilter(card.value)}
+              className={`px-6 py-3 rounded-xl cursor-pointer backdrop-blur-xl border
+                ${
+                  roleFilter === card.value
+                    ? "bg-cyan-500/20 border-cyan-400 text-cyan-300"
+                    : "bg-white/5 border-white/10 text-white/70"
+                }`}
+            >
+              {card.label}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Table */}
@@ -239,16 +259,9 @@ const AdminStaffs = () => {
           </tbody>
         </table>
 
-        {/* Popup message */}
         {popupMsg && (
-          <div
-            className={`absolute bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-xl shadow-lg ${
-              popupMsg.type === "error"
-                ? "bg-red-500 text-white"
-                : "bg-cyan-500 text-black"
-            }`}
-          >
-            {popupMsg.text}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-xl bg-cyan-500 text-black font-medium">
+            {popupMsg}
           </div>
         )}
       </div>
@@ -293,26 +306,38 @@ const AdminStaffs = () => {
                 </div>
               ))}
 
-              <select
-                className="w-full px-3 py-2 rounded-lg bg-[#0f172a] text-white border border-white/10"
-                value={form.role}
-                onChange={(e) => setForm({ ...form, role: e.target.value })}
-              >
-                <option value="COUNSELLOR">Counsellor</option>
-                <option value="COORDINATOR">Coordinator</option>
-                <option value="HOD">HOD</option>
-                <option value="WARDEN">Warden</option>
-              </select>
+              <div>
+                <label className="text-xs text-white/60">Role</label>
+                <select
+                  className="w-full mt-1 px-3 py-2 rounded-lg bg-[#0f172a] text-white border border-white/10"
+                  value={form.role}
+                  onChange={(e) =>
+                    setForm({ ...form, role: e.target.value })
+                  }
+                >
+                  <option value="" disabled>Select role</option>
+                  <option value="COUNSELLOR">Counsellor</option>
+                  <option value="COORDINATOR">Coordinator</option>
+                  <option value="HOD">HOD</option>
+                  <option value="WARDEN">Warden</option>
+                </select>
+              </div>
 
-              <select
-                className="w-full px-3 py-2 rounded-lg bg-[#0f172a] text-white border border-white/10"
-                value={form.department}
-                onChange={(e) => setForm({ ...form, department: e.target.value })}
-              >
-                {DEPARTMENTS.map((d) => (
-                  <option key={d}>{d}</option>
-                ))}
-              </select>
+              <div>
+                <label className="text-xs text-white/60">Department</label>
+                <select
+                  className="w-full mt-1 px-3 py-2 rounded-lg bg-[#0f172a] text-white border border-white/10"
+                  value={form.department}
+                  onChange={(e) =>
+                    setForm({ ...form, department: e.target.value })
+                  }
+                >
+                  <option value="" disabled>Select department</option>
+                  {DEPARTMENTS.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <button
@@ -325,7 +350,7 @@ const AdminStaffs = () => {
         </div>
       )}
 
-      {/* 🔥 DELETE CONFIRM MODAL */}
+      {/* DELETE CONFIRM MODAL */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="w-[360px] rounded-2xl bg-gradient-to-br from-[#0b1220] to-[#020617] border border-white/10 p-6 text-center">
@@ -337,13 +362,13 @@ const AdminStaffs = () => {
             <div className="flex justify-center gap-4">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 rounded-xl bg-white/10 text-white hover:bg-white/20"
+                className="px-4 py-2 rounded-xl bg-white/10 text-white"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDeleteStaff}
-                className="px-4 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600"
+                className="px-4 py-2 rounded-xl bg-red-500 text-white"
               >
                 Delete
               </button>
