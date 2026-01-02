@@ -11,8 +11,7 @@ const DEPARTMENTS = ["CSE", "IT", "ECE", "EEE", "MECH"];
 
 const AdminStaffs = () => {
   const loggedInUser = JSON.parse(localStorage.getItem("user"));
-  const adminId =
-    loggedInUser?.role === "ADMIN" ? loggedInUser?.id : null;
+  const adminId = loggedInUser?.role === "ADMIN" ? loggedInUser?.id : null;
 
   const [staffs, setStaffs] = useState([]);
   const [search, setSearch] = useState("");
@@ -21,7 +20,7 @@ const AdminStaffs = () => {
   const [showModal, setShowModal] = useState(false);
   const [editStaffId, setEditStaffId] = useState(null);
 
-  const [popupMsg, setPopupMsg] = useState("");
+  const [popupMsg, setPopupMsg] = useState(null);
 
   // 🔴 DELETE CONFIRMATION STATE
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -38,25 +37,33 @@ const AdminStaffs = () => {
   });
 
   /* popup */
-  const showPopup = (msg) => {
-    setPopupMsg(msg);
-    setTimeout(() => setPopupMsg(""), 2000);
+  const showPopup = (msg, type = "success") => {
+    setPopupMsg({ text: msg, type });
+    setTimeout(() => setPopupMsg(null), 3000);
   };
 
   /* load staffs */
   const loadStaffs = async () => {
-    const res = await fetchStaffs();
-    setStaffs(
-      res.data.map((s) => ({
-        id: s.id,
-        username: s.username,
-        email: s.email,
-        phone: s.phone || "",
-        role: s.role,
-        department: s.department || "-",
-        is_active: s.is_active === 1,
-      }))
-    );
+    try {
+      const res = await fetchStaffs();
+      setStaffs(
+        res.data.map((s) => ({
+          id: s.id,
+          username: s.username,
+          email: s.email,
+          phone: s.phone || "",
+          role: s.role,
+          department: s.department || "-",
+          is_active: s.is_active === 1,
+        }))
+      );
+    } catch (error) {
+      console.error(error);
+      showPopup(
+        error.response?.data?.message || error.message || "Failed to load staffs",
+        "error"
+      );
+    }
   };
 
   useEffect(() => {
@@ -65,16 +72,24 @@ const AdminStaffs = () => {
 
   /* save staff */
   const handleSaveStaff = async () => {
-    if (editStaffId) {
-      await updateStaff(editStaffId, adminId || loggedInUser?.id, form);
-      showPopup("Staff updated");
-    } else {
-      await createStaff({ adminId, ...form });
-      showPopup("Staff added");
+    try {
+      if (editStaffId) {
+        const res = await updateStaff(editStaffId, adminId || loggedInUser?.id, form);
+        showPopup(res?.data?.message || "Staff updated successfully");
+      } else {
+        const res = await createStaff({ adminId, ...form });
+        showPopup(res?.data?.message || "Staff added successfully");
+      }
+      setShowModal(false);
+      setEditStaffId(null);
+      loadStaffs();
+    } catch (error) {
+      console.error(error);
+      showPopup(
+        error.response?.data?.message || error.message || "Something went wrong",
+        "error"
+      );
     }
-    setShowModal(false);
-    setEditStaffId(null);
-    loadStaffs();
   };
 
   /* open delete confirmation */
@@ -85,11 +100,19 @@ const AdminStaffs = () => {
 
   /* confirm delete */
   const confirmDeleteStaff = async () => {
-    await deleteStaff(deleteStaffId, adminId);
-    setShowDeleteConfirm(false);
-    setDeleteStaffId(null);
-    showPopup("Staff deleted");
-    loadStaffs();
+    try {
+      const res = await deleteStaff(deleteStaffId, adminId);
+      showPopup(res?.data?.message || "Staff deleted successfully");
+      setShowDeleteConfirm(false);
+      setDeleteStaffId(null);
+      loadStaffs();
+    } catch (error) {
+      console.error(error);
+      showPopup(
+        error.response?.data?.message || error.message || "Failed to delete staff",
+        "error"
+      );
+    }
   };
 
   /* edit staff */
@@ -112,8 +135,7 @@ const AdminStaffs = () => {
     const matchSearch =
       s.username.toLowerCase().includes(search.toLowerCase()) ||
       s.email.toLowerCase().includes(search.toLowerCase());
-    const matchRole =
-      roleFilter === "All" || s.role === roleFilter;
+    const matchRole = roleFilter === "All" || s.role === roleFilter;
     return matchSearch && matchRole;
   });
 
@@ -125,18 +147,29 @@ const AdminStaffs = () => {
           <Users className="text-cyan-400" /> Staff Management
         </h1>
 
-        {adminId && (
-          <button
-            onClick={() => setShowModal(true)}
-            className="px-4 py-2 rounded-xl bg-cyan-600 text-black font-medium"
-          >
-            <UserPlus
-              size={16}
-              className="inline mr-1 text-cyan-200"
-            />
-            Add Staff
-          </button>
-        )}
+       {adminId && (
+  <button
+    onClick={() => {
+      // Reset form and edit ID when adding new staff
+      setForm({
+        id: null,
+        username: "",
+        email: "",
+        phone: "",
+        role: "COUNSELLOR",
+        department: "CSE",
+        is_active: false,
+      });
+      setEditStaffId(null); // important
+      setShowModal(true);
+    }}
+    className="px-4 py-2 rounded-xl bg-cyan-600 text-black font-medium"
+  >
+    <UserPlus size={16} className="inline mr-1 text-cyan-200" />
+    Add Staff
+  </button>
+)}
+
       </div>
 
       {/* Filters */}
@@ -179,10 +212,7 @@ const AdminStaffs = () => {
           </thead>
           <tbody>
             {filteredStaffs.map((s) => (
-              <tr
-                key={s.id}
-                className="border-t border-white/10 text-center"
-              >
+              <tr key={s.id} className="border-t border-white/10 text-center">
                 <td className="py-3">{s.username}</td>
                 <td>{s.email}</td>
                 <td>{s.phone}</td>
@@ -211,8 +241,14 @@ const AdminStaffs = () => {
 
         {/* Popup message */}
         {popupMsg && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-xl bg-cyan-500 text-black font-medium shadow-lg">
-            {popupMsg}
+          <div
+            className={`absolute bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-xl shadow-lg ${
+              popupMsg.type === "error"
+                ? "bg-red-500 text-white"
+                : "bg-cyan-500 text-black"
+            }`}
+          >
+            {popupMsg.text}
           </div>
         )}
       </div>
@@ -224,6 +260,17 @@ const AdminStaffs = () => {
             <div className="flex justify-between items-center mb-5">
               <h2 className="text-lg font-semibold text-white">
                 {editStaffId ? "Edit Staff" : "Add Staff"}
+                 {popupMsg && (
+          <div
+            className={`absolute bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-xl shadow-lg ${
+              popupMsg.type === "error"
+                ? "bg-red-500 text-white"
+                : "bg-cyan-500 text-black"
+            }`}
+          >
+            {popupMsg.text}
+          </div>
+        )}
               </h2>
               <X
                 className="cursor-pointer text-white/70 hover:text-white"
@@ -234,9 +281,7 @@ const AdminStaffs = () => {
             <div className="space-y-4">
               {["username", "email", "phone"].map((field) => (
                 <div key={field}>
-                  <label className="text-xs text-white/60 capitalize">
-                    {field}
-                  </label>
+                  <label className="text-xs text-white/60 capitalize">{field}</label>
                   <input
                     className="w-full mt-1 px-3 py-2 rounded-lg bg-white/10 text-white outline-none placeholder-white/40"
                     placeholder={`Enter ${field}`}
@@ -251,9 +296,7 @@ const AdminStaffs = () => {
               <select
                 className="w-full px-3 py-2 rounded-lg bg-[#0f172a] text-white border border-white/10"
                 value={form.role}
-                onChange={(e) =>
-                  setForm({ ...form, role: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, role: e.target.value })}
               >
                 <option value="COUNSELLOR">Counsellor</option>
                 <option value="COORDINATOR">Coordinator</option>
@@ -264,9 +307,7 @@ const AdminStaffs = () => {
               <select
                 className="w-full px-3 py-2 rounded-lg bg-[#0f172a] text-white border border-white/10"
                 value={form.department}
-                onChange={(e) =>
-                  setForm({ ...form, department: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, department: e.target.value })}
               >
                 {DEPARTMENTS.map((d) => (
                   <option key={d}>{d}</option>
@@ -288,9 +329,7 @@ const AdminStaffs = () => {
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="w-[360px] rounded-2xl bg-gradient-to-br from-[#0b1220] to-[#020617] border border-white/10 p-6 text-center">
-            <h3 className="text-lg font-semibold text-white mb-3">
-              Delete Staff
-            </h3>
+            <h3 className="text-lg font-semibold text-white mb-3">Delete Staff</h3>
             <p className="text-white/70 mb-6">
               Are you sure you want to delete this staff?
             </p>
