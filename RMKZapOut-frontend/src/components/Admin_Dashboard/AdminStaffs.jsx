@@ -16,8 +16,9 @@ const EMPTY_FORM = {
   username: "",
   email: "",
   phone: "",
-  role: "",          // placeholder state
-  department: "",    // placeholder state
+  role: "",
+  department: "",
+  year: "", // ✅ coordinator year
   is_active: false,
 };
 
@@ -36,7 +37,7 @@ const AdminStaffs = () => {
   const [showModal, setShowModal] = useState(false);
   const [editStaffId, setEditStaffId] = useState(null);
 
-  const [popupMsg, setPopupMsg] = useState(null);
+  const [popupMsg, setPopupMsg] = useState("");
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteStaffId, setDeleteStaffId] = useState(null);
@@ -61,15 +62,13 @@ const AdminStaffs = () => {
           phone: s.phone || "",
           role: s.role,
           department: s.department || "-",
+          year: s.coordinator_year || null, // ✅ year from backend
           is_active: s.is_active === 1,
         }))
       );
     } catch (error) {
       console.error(error);
-      showPopup(
-        error.response?.data?.message || error.message || "Failed to load staffs",
-        "error"
-      );
+      showPopup("Failed to load staffs");
     }
   };
 
@@ -82,26 +81,21 @@ const AdminStaffs = () => {
   const handleSaveStaff = async () => {
     try {
       if (editStaffId) {
-        const res = await updateStaff(editStaffId, adminId || loggedInUser?.id, form);
-        showPopup(res?.data?.message || "Staff updated successfully");
+        await updateStaff(editStaffId, adminId, form);
+        showPopup("Staff updated successfully");
       } else {
-        const res = await createStaff({ adminId, ...form });
-        showPopup(res?.data?.message || "Staff added successfully");
+        await createStaff({ adminId, ...form });
+        showPopup("Staff added successfully");
       }
+
       setShowModal(false);
       setEditStaffId(null);
+      setForm(EMPTY_FORM);
       loadStaffs();
     } catch (error) {
       console.error(error);
-      showPopup(
-        error.response?.data?.message || error.message || "Something went wrong",
-        "error"
-      );
+      showPopup(error.response?.data?.message || "Operation failed");
     }
-    setShowModal(false);
-    setEditStaffId(null);
-    setForm(EMPTY_FORM);
-    loadStaffs();
   };
 
   const handleDeleteClick = (id) => {
@@ -111,17 +105,14 @@ const AdminStaffs = () => {
 
   const confirmDeleteStaff = async () => {
     try {
-      const res = await deleteStaff(deleteStaffId, adminId);
-      showPopup(res?.data?.message || "Staff deleted successfully");
+      await deleteStaff(deleteStaffId, adminId);
+      showPopup("Staff deleted successfully");
       setShowDeleteConfirm(false);
       setDeleteStaffId(null);
       loadStaffs();
     } catch (error) {
       console.error(error);
-      showPopup(
-        error.response?.data?.message || error.message || "Failed to delete staff",
-        "error"
-      );
+      showPopup("Delete failed");
     }
   };
 
@@ -133,6 +124,7 @@ const AdminStaffs = () => {
       phone: s.phone,
       role: s.role,
       department: s.department === "-" ? "" : s.department,
+      year: s.year || "",
       is_active: s.is_active,
     });
     setEditStaffId(s.id);
@@ -175,70 +167,63 @@ const AdminStaffs = () => {
             }}
             className="px-4 py-2 rounded-xl bg-cyan-600 text-black font-medium"
           >
-            <UserPlus size={16} className="inline mr-1 text-cyan-200" />
+            <UserPlus size={16} className="inline mr-1" />
             Add Staff
           </button>
         )}
       </div>
 
-      {/* Search + Role Cards */}
-      <div className="flex gap-4 items-center flex-wrap">
+      {/* Search + Role Filter */}
+      <div className="flex gap-4 flex-wrap">
         <div className="flex items-center gap-2 bg-white/10 px-4 py-2 rounded-xl">
           <Search size={16} />
           <input
             placeholder="Search staff..."
-            className="bg-transparent outline-none text-white placeholder-white/40"
+            className="bg-transparent outline-none text-white"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
-        <div className="flex gap-4">
-          {[
-            { label: "All", value: "All" },
-            { label: "Counsellor", value: "COUNSELLOR" },
-            { label: "Branch Coordinator", value: "COORDINATOR" },
-            { label: "HOD", value: "HOD" },
-            { label: "Others", value: "OTHERS" },
-          ].map((card) => (
-            <div
-              key={card.value}
-              onClick={() => setRoleFilter(card.value)}
-              className={`px-6 py-3 rounded-xl cursor-pointer backdrop-blur-xl border
-                ${
-                  roleFilter === card.value
-                    ? "bg-cyan-500/20 border-cyan-400 text-cyan-300"
-                    : "bg-white/5 border-white/10 text-white/70"
-                }`}
-            >
-              {card.label}
-            </div>
-          ))}
-        </div>
+        {["All", "COUNSELLOR", "COORDINATOR", "HOD", "OTHERS"].map((r) => (
+          <button
+            key={r}
+            onClick={() => setRoleFilter(r)}
+            className={`px-5 py-2 rounded-xl ${
+              roleFilter === r
+                ? "bg-cyan-500/20 text-cyan-300"
+                : "bg-white/10 text-white/70"
+            }`}
+          >
+            {r}
+          </button>
+        ))}
       </div>
 
       {/* Table */}
-      <div className="bg-white/5 backdrop-blur-xl rounded-2xl overflow-hidden relative">
+      <div className="bg-white/5 rounded-2xl overflow-hidden">
         <table className="w-full text-white text-sm">
           <thead className="bg-white/10">
             <tr>
-              <th className="py-4">Name</th>
+              <th className="py-3">Name</th>
               <th>Email</th>
               <th>Phone</th>
               <th>Role</th>
               <th>Department</th>
+              <th>Year</th>
               <th>Action</th>
             </tr>
           </thead>
           <tbody>
             {filteredStaffs.map((s) => (
               <tr key={s.id} className="border-t border-white/10 text-center">
-                <td className="py-3">{s.username}</td>
+                <td className="py-2">{s.username}</td>
                 <td>{s.email}</td>
                 <td>{s.phone}</td>
                 <td className="text-cyan-300">{s.role}</td>
                 <td>{s.department}</td>
-                <td className="flex justify-center gap-2 py-3">
+                <td>{s.role === "COORDINATOR" ? s.year : "-"}</td>
+                <td className="flex justify-center gap-2 py-2">
                   <button
                     onClick={() => handleEditStaff(s)}
                     className="px-3 py-1 rounded bg-yellow-500/30"
@@ -258,91 +243,90 @@ const AdminStaffs = () => {
             ))}
           </tbody>
         </table>
-
-        {popupMsg && (
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-xl bg-cyan-500 text-black font-medium">
-            {popupMsg}
-          </div>
-        )}
       </div>
+
+      {/* Popup */}
+      {popupMsg && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-cyan-500 text-black px-6 py-2 rounded-xl">
+          {popupMsg}
+        </div>
+      )}
 
       {/* ADD / EDIT MODAL */}
       {showModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="w-[420px] rounded-2xl bg-gradient-to-br from-[#0b1220] to-[#020617] border border-white/10 p-6">
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="text-lg font-semibold text-white">
+          <div className="w-[420px] rounded-2xl bg-[#020617] border border-white/10 p-6">
+            <div className="flex justify-between mb-4">
+              <h2 className="text-white font-semibold">
                 {editStaffId ? "Edit Staff" : "Add Staff"}
-                 {popupMsg && (
-          <div
-            className={`absolute bottom-4 left-1/2 -translate-x-1/2 px-6 py-2 rounded-xl shadow-lg ${
-              popupMsg.type === "error"
-                ? "bg-red-500 text-white"
-                : "bg-cyan-500 text-black"
-            }`}
-          >
-            {popupMsg.text}
-          </div>
-        )}
               </h2>
               <X
-                className="cursor-pointer text-white/70 hover:text-white"
+                className="cursor-pointer"
                 onClick={() => setShowModal(false)}
               />
             </div>
 
             <div className="space-y-4">
-              {["username", "email", "phone"].map((field) => (
-                <div key={field}>
-                  <label className="text-xs text-white/60 capitalize">{field}</label>
-                  <input
-                    className="w-full mt-1 px-3 py-2 rounded-lg bg-white/10 text-white outline-none placeholder-white/40"
-                    placeholder={`Enter ${field}`}
-                    value={form[field]}
-                    onChange={(e) =>
-                      setForm({ ...form, [field]: e.target.value })
-                    }
-                  />
-                </div>
+              {["username", "email", "phone"].map((f) => (
+                <input
+                  key={f}
+                  placeholder={f}
+                  value={form[f]}
+                  onChange={(e) =>
+                    setForm({ ...form, [f]: e.target.value })
+                  }
+                  className="w-full px-3 py-2 bg-white/10 rounded text-white"
+                />
               ))}
 
-              <div>
-                <label className="text-xs text-white/60">Role</label>
-                <select
-                  className="w-full mt-1 px-3 py-2 rounded-lg bg-[#0f172a] text-white border border-white/10"
-                  value={form.role}
-                  onChange={(e) =>
-                    setForm({ ...form, role: e.target.value })
-                  }
-                >
-                  <option value="" disabled>Select role</option>
-                  <option value="COUNSELLOR">Counsellor</option>
-                  <option value="COORDINATOR">Coordinator</option>
-                  <option value="HOD">HOD</option>
-                  <option value="WARDEN">Warden</option>
-                </select>
-              </div>
+              <select
+                value={form.role}
+                onChange={(e) =>
+                  setForm({ ...form, role: e.target.value, year: "" })
+                }
+                className="w-full px-3 py-2 bg-white/10 rounded text-white"
+              >
+                <option value="" disabled>Select role</option>
+                <option value="COUNSELLOR">Counsellor</option>
+                <option value="COORDINATOR">Coordinator</option>
+                <option value="HOD">HOD</option>
+                <option value="WARDEN">Warden</option>
+              </select>
 
-              <div>
-                <label className="text-xs text-white/60">Department</label>
+              <select
+                value={form.department}
+                onChange={(e) =>
+                  setForm({ ...form, department: e.target.value })
+                }
+                className="w-full px-3 py-2 bg-white/10 rounded text-white"
+              >
+                <option value="" disabled>Select department</option>
+                {DEPARTMENTS.map((d) => (
+                  <option key={d}>{d}</option>
+                ))}
+              </select>
+
+              {/* ✅ Coordinator Year */}
+              {form.role === "COORDINATOR" && (
                 <select
-                  className="w-full mt-1 px-3 py-2 rounded-lg bg-[#0f172a] text-white border border-white/10"
-                  value={form.department}
+                  value={form.year}
                   onChange={(e) =>
-                    setForm({ ...form, department: e.target.value })
+                    setForm({ ...form, year: Number(e.target.value) })
                   }
+                  className="w-full px-3 py-2 bg-white/10 rounded text-white"
                 >
-                  <option value="" disabled>Select department</option>
-                  {DEPARTMENTS.map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
+                  <option value="" disabled>Select year</option>
+                  <option value={1}>1st Year</option>
+                  <option value={2}>2nd Year</option>
+                  <option value={3}>3rd Year</option>
+                  <option value={4}>4th Year</option>
                 </select>
-              </div>
+              )}
             </div>
 
             <button
               onClick={handleSaveStaff}
-              className="w-full mt-6 py-2 rounded-xl bg-cyan-500 text-black font-semibold"
+              className="w-full mt-6 bg-cyan-500 text-black py-2 rounded-xl"
             >
               {editStaffId ? "Update Staff" : "Create Staff"}
             </button>
@@ -350,25 +334,21 @@ const AdminStaffs = () => {
         </div>
       )}
 
-      {/* DELETE CONFIRM MODAL */}
+      {/* DELETE CONFIRM */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="w-[360px] rounded-2xl bg-gradient-to-br from-[#0b1220] to-[#020617] border border-white/10 p-6 text-center">
-            <h3 className="text-lg font-semibold text-white mb-3">Delete Staff</h3>
-            <p className="text-white/70 mb-6">
-              Are you sure you want to delete this staff?
-            </p>
-
-            <div className="flex justify-center gap-4">
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center">
+          <div className="bg-[#020617] p-6 rounded-xl text-center">
+            <p className="text-white mb-4">Delete this staff?</p>
+            <div className="flex gap-4 justify-center">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 rounded-xl bg-white/10 text-white"
+                className="px-4 py-2 bg-white/10 rounded"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmDeleteStaff}
-                className="px-4 py-2 rounded-xl bg-red-500 text-white"
+                className="px-4 py-2 bg-red-500 rounded"
               >
                 Delete
               </button>

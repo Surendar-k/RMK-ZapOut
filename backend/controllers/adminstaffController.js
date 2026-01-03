@@ -3,10 +3,15 @@ import bcrypt from "bcryptjs";
 
 /* ================= CREATE STAFF ================= */
 export const createStaff = async (req, res) => {
-  const { adminId, username, email, phone, role, department } = req.body;
+  const { adminId, username, email, phone, role, department, year } = req.body;
 
   if (!adminId || !username || !email || !role)
     return res.status(400).json({ message: "Missing fields" });
+
+  // Coordinator must have year
+  if (role === "COORDINATOR" && ![1, 2, 3, 4].includes(year)) {
+    return res.status(400).json({ message: "Coordinator year must be between 1 and 4" });
+  }
 
   const conn = await db.getConnection();
   try {
@@ -19,14 +24,12 @@ export const createStaff = async (req, res) => {
 
     await conn.beginTransaction();
 
-    // ✅ Check for existing user by email or phone
     const [[existingUser]] = await conn.query(
       "SELECT id FROM users WHERE email=? OR phone=?",
       [email, phone]
     );
-    if (existingUser) {
-      return res.status(409).json({ message: "User with this email or phone already exists" });
-    }
+    if (existingUser)
+      return res.status(409).json({ message: "User already exists" });
 
     let deptId = null;
     if (department) {
@@ -38,41 +41,57 @@ export const createStaff = async (req, res) => {
       deptId = dept.id;
     }
 
-    const password = "Welcome@123";
-    const hash = await bcrypt.hash(password, 10);
+    const hash = await bcrypt.hash("Welcome@123", 10);
 
-    // Insert into users table
     const [user] = await conn.query(
       `INSERT INTO users (username,email,phone,password_hash,role,is_active)
        VALUES (?,?,?,?,?,1)`,
       [username, email, phone, hash, role]
     );
 
-    // Insert into role-specific table
-    if (["COUNSELLOR", "COORDINATOR", "HOD"].includes(role) && deptId) {
-      const roleTable =
-        role === "HOD"
-          ? "hods"
-          : role === "COORDINATOR"
-          ? "coordinators"
-          : "counsellors";
-
+    // Role-specific inserts
+    if (role === "COORDINATOR" && deptId) {
       await conn.query(
-        `INSERT INTO ${roleTable} (user_id, department_id) VALUES (?, ?)`,
+        `INSERT INTO coordinators (user_id, department_id, year)
+         VALUES (?, ?, ?)`,
+        [user.insertId, deptId, year]
+      );
+    }
+
+    if (role === "HOD" && deptId) {
+      await conn.query(
+        `INSERT INTO hods (user_id, department_id)
+         VALUES (?, ?)`,
+        [user.insertId, deptId]
+      );
+    }
+
+    if (role === "COUNSELLOR" && deptId) {
+      await conn.query(
+        `INSERT INTO counsellors (user_id, department_id)
+         VALUES (?, ?)`,
         [user.insertId, deptId]
       );
     }
 
     await conn.commit();
     res.status(201).json({ message: "Staff created successfully" });
+
   } catch (err) {
     await conn.rollback();
-    console.error("Create Staff Error:", err);
-    res.status(500).json({ message: err.message || "Create failed" });
+
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        message: "Coordinator already assigned for this department and year"
+      });
+    }
+
+    res.status(500).json({ message: err.message });
   } finally {
     conn.release();
   }
 };
+
 
 
 /* ================= GET STAFFS ================= */
@@ -87,7 +106,8 @@ export const getStaffs = async (req, res) => {
         u.role,
         u.is_active,
         d.name AS department,
-        d.id AS department_id
+        d.id AS department_id,
+        co.year AS coordinator_year
       FROM users u
       LEFT JOIN counsellors c ON u.id = c.user_id
       LEFT JOIN coordinators co ON u.id = co.user_id
@@ -100,10 +120,11 @@ export const getStaffs = async (req, res) => {
 
     res.json(rows);
   } catch (err) {
-    console.error("Get Staffs Error:", err);
+    console.error(err);
     res.status(500).json({ message: "Failed to fetch staff list" });
   }
 };
+
 
 /* ================= DELETE STAFF ================= */
 export const deleteStaff = async (req, res) => {
@@ -143,12 +164,16 @@ export const deleteStaff = async (req, res) => {
 /* ================= UPDATE STAFF ================= */
 export const updateStaff = async (req, res) => {
   const staffId = req.params.id;
-  const { adminId, username, email, phone, role, department } = req.body;
+  const { adminId, username, email, phone, role, department, year } = req.body;
+
+  if (role === "COORDINATOR" && ![1, 2, 3, 4].includes(year)) {
+    return res.status(400).json({ message: "Invalid coordinator year" });
+  }
 
   const conn = await db.getConnection();
   try {
     const [[admin]] = await conn.query(
-      "SELECT id, role FROM users WHERE id=? AND is_active=1",
+      "SELECT role FROM users WHERE id=? AND is_active=1",
       [adminId]
     );
     if (!admin || admin.role !== "ADMIN")
@@ -156,14 +181,12 @@ export const updateStaff = async (req, res) => {
 
     await conn.beginTransaction();
 
-    // ✅ Check for duplicate email or phone in other users
-    const [[duplicateUser]] = await conn.query(
+    const [[dup]] = await conn.query(
       "SELECT id FROM users WHERE (email=? OR phone=?) AND id<>?",
       [email, phone, staffId]
     );
-    if (duplicateUser) {
-      return res.status(409).json({ message: "Another user with this email or phone already exists" });
-    }
+    if (dup)
+      return res.status(409).json({ message: "Duplicate email or phone" });
 
     let deptId = null;
     if (department) {
@@ -175,49 +198,57 @@ export const updateStaff = async (req, res) => {
       deptId = dept.id;
     }
 
-    // Update users table
     await conn.query(
       "UPDATE users SET username=?, email=?, phone=?, role=? WHERE id=?",
       [username, email, phone, role, staffId]
     );
 
-    // Remove user from other role tables to enforce 1 role per user
-    if (role === "HOD") {
-      await conn.query("DELETE FROM coordinators WHERE user_id=?", [staffId]);
-      await conn.query("DELETE FROM counsellors WHERE user_id=?", [staffId]);
-    } else if (role === "COORDINATOR") {
-      await conn.query("DELETE FROM hods WHERE user_id=?", [staffId]);
-      await conn.query("DELETE FROM counsellors WHERE user_id=?", [staffId]);
-    } else if (role === "COUNSELLOR") {
-      await conn.query("DELETE FROM hods WHERE user_id=?", [staffId]);
-      await conn.query("DELETE FROM coordinators WHERE user_id=?", [staffId]);
+    // Remove from all role tables
+    await conn.query("DELETE FROM coordinators WHERE user_id=?", [staffId]);
+    await conn.query("DELETE FROM hods WHERE user_id=?", [staffId]);
+    await conn.query("DELETE FROM counsellors WHERE user_id=?", [staffId]);
+
+    // Reinsert based on role
+    if (role === "COORDINATOR" && deptId) {
+      await conn.query(
+        `INSERT INTO coordinators (user_id, department_id, year)
+         VALUES (?, ?, ?)`,
+        [staffId, deptId, year]
+      );
     }
 
-    // Insert or update role-specific table
-    if (["HOD", "COORDINATOR", "COUNSELLOR"].includes(role) && deptId) {
-      const roleTable =
-        role === "HOD"
-          ? "hods"
-          : role === "COORDINATOR"
-          ? "coordinators"
-          : "counsellors";
-
+    if (role === "HOD" && deptId) {
       await conn.query(
-        `INSERT INTO ${roleTable} (user_id, department_id)
-         VALUES (?, ?)
-         ON DUPLICATE KEY UPDATE department_id=?`,
-        [staffId, deptId, deptId]
+        `INSERT INTO hods (user_id, department_id)
+         VALUES (?, ?)`,
+        [staffId, deptId]
+      );
+    }
+
+    if (role === "COUNSELLOR" && deptId) {
+      await conn.query(
+        `INSERT INTO counsellors (user_id, department_id)
+         VALUES (?, ?)`,
+        [staffId, deptId]
       );
     }
 
     await conn.commit();
     res.json({ message: "Staff updated successfully" });
+
   } catch (err) {
     await conn.rollback();
-    console.error("Update Staff Error:", err);
-    res.status(500).json({ message: err.message || "Update failed" });
+
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        message: "Coordinator already exists for this department and year"
+      });
+    }
+
+    res.status(500).json({ message: err.message });
   } finally {
     conn.release();
   }
 };
+
 
