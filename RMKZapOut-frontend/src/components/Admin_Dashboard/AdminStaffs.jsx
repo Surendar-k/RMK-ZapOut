@@ -8,8 +8,8 @@ import {
 } from "../../services/adminStaffService";
 
 /* ---------------- CONSTANTS ---------------- */
-
 const DEPARTMENTS = ["CSE", "IT", "ECE", "EEE", "MECH"];
+const ACADEMIC_TYPES = ["BASE_DEPT", "CORE_DEPT"];
 
 const EMPTY_FORM = {
   id: null,
@@ -18,18 +18,17 @@ const EMPTY_FORM = {
   phone: "",
   role: "",
   department: "",
-  year: "", // ✅ coordinator year
+  academic_type: "",
+  year: "",
   is_active: false,
 };
 
 /* ---------------- COMPONENT ---------------- */
-
 const AdminStaffs = () => {
   const loggedInUser = JSON.parse(localStorage.getItem("user"));
   const adminId = loggedInUser?.role === "ADMIN" ? loggedInUser?.id : null;
 
   /* ---------------- STATE ---------------- */
-
   const [staffs, setStaffs] = useState([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
@@ -45,10 +44,9 @@ const AdminStaffs = () => {
   const [form, setForm] = useState(EMPTY_FORM);
 
   /* ---------------- HELPERS ---------------- */
-
   const showPopup = (msg) => {
     setPopupMsg(msg);
-    setTimeout(() => setPopupMsg(""), 2000);
+    setTimeout(() => setPopupMsg(""), 2500);
   };
 
   const loadStaffs = async () => {
@@ -62,7 +60,8 @@ const AdminStaffs = () => {
           phone: s.phone || "",
           role: s.role,
           department: s.department || "-",
-          year: s.coordinator_year || null, // ✅ year from backend
+          year: s.coordinator_year || null,
+          academic_type: s.academic_type || "-",
           is_active: s.is_active === 1,
         }))
       );
@@ -76,10 +75,30 @@ const AdminStaffs = () => {
     loadStaffs();
   }, []);
 
-  /* ---------------- CRUD ---------------- */
+  /* ---------------- CHECK BASE_DEPT AVAILABILITY ---------------- */
+  const baseDeptExists = (role) => {
+    return staffs.some(
+      (s) =>
+        s.role === role &&
+        s.academic_type === "BASE_DEPT"
+    );
+  };
 
+  /* ---------------- CRUD ---------------- */
   const handleSaveStaff = async () => {
     try {
+      // Prevent duplicate BASE_DEPT Coordinator/HOD
+      if (
+        form.academic_type === "BASE_DEPT" &&
+        ["COORDINATOR", "HOD"].includes(form.role) &&
+        !editStaffId &&
+        baseDeptExists(form.role)
+      ) {
+        return showPopup(
+          `BASE_DEPT ${form.role} already exists. Cannot create another.`
+        );
+      }
+
       if (editStaffId) {
         await updateStaff(editStaffId, adminId, form);
         showPopup("Staff updated successfully");
@@ -124,6 +143,7 @@ const AdminStaffs = () => {
       phone: s.phone,
       role: s.role,
       department: s.department === "-" ? "" : s.department,
+      academic_type: s.academic_type === "-" ? "" : s.academic_type,
       year: s.year || "",
       is_active: s.is_active,
     });
@@ -132,7 +152,6 @@ const AdminStaffs = () => {
   };
 
   /* ---------------- FILTER ---------------- */
-
   const filteredStaffs = staffs.filter((s) => {
     const matchSearch =
       s.username.toLowerCase().includes(search.toLowerCase()) ||
@@ -149,7 +168,6 @@ const AdminStaffs = () => {
   });
 
   /* ---------------- UI ---------------- */
-
   return (
     <div className="p-8 space-y-6 relative">
       {/* Header */}
@@ -210,6 +228,7 @@ const AdminStaffs = () => {
               <th>Phone</th>
               <th>Role</th>
               <th>Department</th>
+              <th>Academic Type</th>
               <th>Year</th>
               <th>Action</th>
             </tr>
@@ -221,7 +240,12 @@ const AdminStaffs = () => {
                 <td>{s.email}</td>
                 <td>{s.phone}</td>
                 <td className="text-cyan-300">{s.role}</td>
-                <td>{s.department}</td>
+                <td>
+                  {s.role === "COUNSELLOR" || s.academic_type !== "BASE_DEPT"
+                    ? s.department
+                    : "-"}
+                </td>
+                <td>{s.academic_type}</td>
                 <td>{s.role === "COORDINATOR" ? s.year : "-"}</td>
                 <td className="flex justify-center gap-2 py-2">
                   <button
@@ -279,6 +303,7 @@ const AdminStaffs = () => {
                 />
               ))}
 
+              {/* Role Dropdown */}
               <select
                 value={form.role}
                 onChange={(e) =>
@@ -286,42 +311,90 @@ const AdminStaffs = () => {
                 }
                 className="w-full px-3 py-2 bg-white/10 rounded text-white"
               >
-                <option value="" disabled>Select role</option>
+                <option value="" disabled>
+                  Select role
+                </option>
                 <option value="COUNSELLOR">Counsellor</option>
                 <option value="COORDINATOR">Coordinator</option>
                 <option value="HOD">HOD</option>
                 <option value="WARDEN">Warden</option>
               </select>
 
-              <select
-                value={form.department}
-                onChange={(e) =>
-                  setForm({ ...form, department: e.target.value })
-                }
-                className="w-full px-3 py-2 bg-white/10 rounded text-white"
-              >
-                <option value="" disabled>Select department</option>
-                {DEPARTMENTS.map((d) => (
-                  <option key={d}>{d}</option>
-                ))}
-              </select>
+              {/* Academic Type Dropdown */}
+            {/* Academic Type Dropdown */}
+<select
+  value={form.academic_type}
+  onChange={(e) => {
+    const value = e.target.value;
+    // If BASE_DEPT, set year to 1 automatically
+    setForm({
+      ...form,
+      academic_type: value,
+      year:
+        value === "BASE_DEPT" && form.role === "COORDINATOR"
+          ? 1
+          : form.year,
+    });
+  }}
+  className="w-full px-3 py-2 bg-white/10 rounded text-white"
+>
+  <option value="" disabled>
+    Select academic type
+  </option>
+  {ACADEMIC_TYPES.map((t) => (
+    <option
+      key={t}
+      disabled={
+        t === "BASE_DEPT" &&
+        ["COORDINATOR", "HOD"].includes(form.role) &&
+        baseDeptExists(form.role) &&
+        !editStaffId
+      }
+    >
+      {t}
+    </option>
+  ))}
+</select>
 
-              {/* ✅ Coordinator Year */}
-              {form.role === "COORDINATOR" && (
+
+              {/* Department Dropdown */}
+              {!(form.academic_type === "BASE_DEPT" && ["HOD", "COORDINATOR"].includes(form.role)) && (
                 <select
-                  value={form.year}
+                  value={form.department}
                   onChange={(e) =>
-                    setForm({ ...form, year: Number(e.target.value) })
+                    setForm({ ...form, department: e.target.value })
                   }
                   className="w-full px-3 py-2 bg-white/10 rounded text-white"
                 >
-                  <option value="" disabled>Select year</option>
-                  <option value={1}>1st Year</option>
-                  <option value={2}>2nd Year</option>
-                  <option value={3}>3rd Year</option>
-                  <option value={4}>4th Year</option>
+                  <option value="" disabled>
+                    Select department
+                  </option>
+                  {DEPARTMENTS.map((d) => (
+                    <option key={d}>{d}</option>
+                  ))}
                 </select>
               )}
+
+              {/* Coordinator Year Dropdown */}
+           {/* Coordinator Year Dropdown */}
+{form.role === "COORDINATOR" && !(form.academic_type === "BASE_DEPT") && (
+  <select
+    value={form.year}
+    onChange={(e) =>
+      setForm({ ...form, year: Number(e.target.value) })
+    }
+    className="w-full px-3 py-2 bg-white/10 rounded text-white"
+  >
+    <option value="" disabled>
+      Select year
+    </option>
+    <option value={1}>1st Year</option>
+    <option value={2}>2nd Year</option>
+    <option value={3}>3rd Year</option>
+    <option value={4}>4th Year</option>
+  </select>
+)}
+
             </div>
 
             <button
