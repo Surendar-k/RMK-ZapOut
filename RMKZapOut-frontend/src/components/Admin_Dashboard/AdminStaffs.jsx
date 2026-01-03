@@ -6,9 +6,9 @@ import {
   deleteStaff,
   updateStaff,
 } from "../../services/adminStaffService";
+import { fetchDepartments } from "../../services/departmentService";
 
 /* ---------------- CONSTANTS ---------------- */
-const DEPARTMENTS = ["CSE", "IT", "ECE", "EEE", "MECH"];
 const ACADEMIC_TYPES = ["BASE_DEPT", "CORE_DEPT"];
 
 const EMPTY_FORM = {
@@ -32,6 +32,7 @@ const AdminStaffs = () => {
   const [staffs, setStaffs] = useState([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
+  const [departments, setDepartments] = useState([]);
 
   const [showModal, setShowModal] = useState(false);
   const [editStaffId, setEditStaffId] = useState(null);
@@ -72,20 +73,50 @@ const AdminStaffs = () => {
   };
 
   useEffect(() => {
-    loadStaffs();
+    const fetchData = async () => {
+      try {
+        // Load staffs
+        const staffRes = await fetchStaffs();
+        setStaffs(
+          staffRes.data.map((s) => ({
+            id: s.id,
+            username: s.username,
+            email: s.email,
+            phone: s.phone || "",
+            role: s.role,
+            department: s.department || "-",
+            year: s.coordinator_year || null,
+            academic_type: s.academic_type || "-",
+            is_active: s.is_active === 1,
+          }))
+        );
+
+        // Load departments
+        const deptRes = await fetchDepartments();
+        setDepartments(deptRes.data); // res.data is array of {id, name, display_name}
+      } catch (error) {
+        console.error(error);
+        setTimeout(() => showPopup("Failed to load data"), 0);
+      }
+    };
+
+    fetchData();
   }, []);
 
   /* ---------------- CHECK BASE_DEPT AVAILABILITY ---------------- */
   const baseDeptExists = (role) => {
     return staffs.some(
-      (s) =>
-        s.role === role &&
-        s.academic_type === "BASE_DEPT"
+      (s) => s.role === role && s.academic_type === "BASE_DEPT"
     );
   };
 
   /* ---------------- CRUD ---------------- */
   const handleSaveStaff = async () => {
+    // Validate phone: exactly 10 digits
+    if (!/^\d{10}$/.test(form.phone)) {
+      return showPopup("Phone number must be exactly 10 digits");
+    }
+
     try {
       // Prevent duplicate BASE_DEPT Coordinator/HOD
       if (
@@ -233,39 +264,76 @@ const AdminStaffs = () => {
               <th>Action</th>
             </tr>
           </thead>
-          <tbody>
-            {filteredStaffs.map((s) => (
-              <tr key={s.id} className="border-t border-white/10 text-center">
-                <td className="py-2">{s.username}</td>
-                <td>{s.email}</td>
-                <td>{s.phone}</td>
-                <td className="text-cyan-300">{s.role}</td>
-                <td>
-                  {s.role === "COUNSELLOR" || s.academic_type !== "BASE_DEPT"
-                    ? s.department
-                    : "-"}
-                </td>
-                <td>{s.academic_type}</td>
-                <td>{s.role === "COORDINATOR" ? s.year : "-"}</td>
-                <td className="flex justify-center gap-2 py-2">
-                  <button
-                    onClick={() => handleEditStaff(s)}
-                    className="px-3 py-1 rounded bg-yellow-500/30"
-                  >
-                    Edit
-                  </button>
-                  {adminId && (
-                    <button
-                      onClick={() => handleDeleteClick(s.id)}
-                      className="px-3 py-1 rounded bg-red-500/30"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
+       <tbody>
+  {filteredStaffs.map((s) => (
+    <tr key={s.id} className="border-t border-white/10 text-center hover:bg-white/5 transition-colors">
+      <td className="py-2 font-medium">{s.username}</td>
+      <td>{s.email}</td>
+      <td>{s.phone}</td>
+      <td className="text-cyan-300 font-semibold">{s.role || "N/A"}</td>
+
+      {/* Department */}
+      <td>
+        {s.role === "COUNSELLOR" || s.academic_type !== "BASE_DEPT" ? (
+          <span className="px-2 py-1 rounded text-sm bg-white/10">
+            {s.department || "N/A"}
+          </span>
+        ) : (
+          <span className="text-white/50">N/A</span>
+        )}
+      </td>
+
+      {/* Academic Type */}
+      <td>
+        {s.academic_type ? (
+          <span
+            className={`px-2 py-1 rounded text-sm font-medium ${
+              s.academic_type === "BASE_DEPT"
+                ? "bg-red-500/20 text-red-400"
+                : "bg-green-500/20 text-green-400"
+            }`}
+          >
+            {s.academic_type}
+          </span>
+        ) : (
+          <span className="text-white/50">N/A</span>
+        )}
+      </td>
+
+      {/* Year */}
+      <td>
+        {s.role === "COORDINATOR" ? (
+          s.year ? (
+            <span className="px-2 py-1 rounded text-sm bg-white/10">{s.year}</span>
+          ) : (
+            <span className="text-white/50">N/A</span>
+          )
+        ) : (
+          <span className="text-white/50">N/A</span>
+        )}
+      </td>
+
+      {/* Actions */}
+      <td className="flex justify-center gap-2 py-2">
+        <button
+          onClick={() => handleEditStaff(s)}
+          className="px-3 py-1 rounded bg-yellow-500/30 hover:bg-yellow-500/50 transition"
+        >
+          Edit
+        </button>
+        {adminId && (
+          <button
+            onClick={() => handleDeleteClick(s.id)}
+            className="px-3 py-1 rounded bg-red-500/30 hover:bg-red-500/50 transition"
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
+      </td>
+    </tr>
+  ))}
+</tbody>
+
         </table>
       </div>
 
@@ -291,17 +359,32 @@ const AdminStaffs = () => {
             </div>
 
             <div className="space-y-4">
-              {["username", "email", "phone"].map((f) => (
-                <input
-                  key={f}
-                  placeholder={f}
-                  value={form[f]}
-                  onChange={(e) =>
-                    setForm({ ...form, [f]: e.target.value })
+              {/* Username & Email */}
+              <input
+                placeholder="username"
+                value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                className="w-full px-3 py-2 bg-white/10 rounded text-white"
+              />
+              <input
+                placeholder="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className="w-full px-3 py-2 bg-white/10 rounded text-white"
+              />
+
+              {/* Phone */}
+              <input
+                placeholder="phone"
+                value={form.phone}
+                onChange={(e) => {
+                  const digitsOnly = e.target.value.replace(/\D/g, "");
+                  if (digitsOnly.length <= 10) {
+                    setForm({ ...form, phone: digitsOnly });
                   }
-                  className="w-full px-3 py-2 bg-white/10 rounded text-white"
-                />
-              ))}
+                }}
+                className="w-full px-3 py-2 bg-white/10 rounded text-white"
+              />
 
               {/* Role Dropdown */}
               <select
@@ -320,45 +403,43 @@ const AdminStaffs = () => {
                 <option value="WARDEN">Warden</option>
               </select>
 
-              {/* Academic Type Dropdown */}
-            {/* Academic Type Dropdown */}
-<select
-  value={form.academic_type}
-  onChange={(e) => {
-    const value = e.target.value;
-    // If BASE_DEPT, set year to 1 automatically
-    setForm({
-      ...form,
-      academic_type: value,
-      year:
-        value === "BASE_DEPT" && form.role === "COORDINATOR"
-          ? 1
-          : form.year,
-    });
-  }}
-  className="w-full px-3 py-2 bg-white/10 rounded text-white"
->
-  <option value="" disabled>
-    Select academic type
-  </option>
-  {ACADEMIC_TYPES.map((t) => (
-    <option
-      key={t}
-      disabled={
-        t === "BASE_DEPT" &&
-        ["COORDINATOR", "HOD"].includes(form.role) &&
-        baseDeptExists(form.role) &&
-        !editStaffId
-      }
-    >
-      {t}
-    </option>
-  ))}
-</select>
+              {/* Academic Type */}
+              <select
+                value={form.academic_type}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setForm({
+                    ...form,
+                    academic_type: value,
+                    year:
+                      value === "BASE_DEPT" && form.role === "COORDINATOR"
+                        ? 1
+                        : form.year,
+                  });
+                }}
+                className="w-full px-3 py-2 bg-white/10 rounded text-white"
+              >
+                <option value="" disabled>
+                  Select academic type
+                </option>
+                {ACADEMIC_TYPES.map((t) => (
+                  <option
+                    key={t}
+                    disabled={
+                      t === "BASE_DEPT" &&
+                      ["COORDINATOR", "HOD"].includes(form.role) &&
+                      baseDeptExists(form.role) &&
+                      !editStaffId
+                    }
+                  >
+                    {t}
+                  </option>
+                ))}
+              </select>
 
-
-              {/* Department Dropdown */}
-              {!(form.academic_type === "BASE_DEPT" && ["HOD", "COORDINATOR"].includes(form.role)) && (
+              {/* Department */}
+              {!(form.academic_type === "BASE_DEPT" &&
+                ["HOD", "COORDINATOR"].includes(form.role)) && (
                 <select
                   value={form.department}
                   onChange={(e) =>
@@ -369,32 +450,33 @@ const AdminStaffs = () => {
                   <option value="" disabled>
                     Select department
                   </option>
-                  {DEPARTMENTS.map((d) => (
-                    <option key={d}>{d}</option>
+                  {departments.map((d) => (
+                    <option key={d.id} value={d.name}>
+                      {d.display_name}
+                    </option>
                   ))}
                 </select>
               )}
 
-              {/* Coordinator Year Dropdown */}
-           {/* Coordinator Year Dropdown */}
-{form.role === "COORDINATOR" && !(form.academic_type === "BASE_DEPT") && (
-  <select
-    value={form.year}
-    onChange={(e) =>
-      setForm({ ...form, year: Number(e.target.value) })
-    }
-    className="w-full px-3 py-2 bg-white/10 rounded text-white"
-  >
-    <option value="" disabled>
-      Select year
-    </option>
-    <option value={1}>1st Year</option>
-    <option value={2}>2nd Year</option>
-    <option value={3}>3rd Year</option>
-    <option value={4}>4th Year</option>
-  </select>
-)}
-
+              {/* Coordinator Year */}
+              {form.role === "COORDINATOR" &&
+                !(form.academic_type === "BASE_DEPT") && (
+                  <select
+                    value={form.year}
+                    onChange={(e) =>
+                      setForm({ ...form, year: Number(e.target.value) })
+                    }
+                    className="w-full px-3 py-2 bg-white/10 rounded text-white"
+                  >
+                    <option value="" disabled>
+                      Select year
+                    </option>
+                    <option value={1}>1st Year</option>
+                    <option value={2}>2nd Year</option>
+                    <option value={3}>3rd Year</option>
+                    <option value={4}>4th Year</option>
+                  </select>
+                )}
             </div>
 
             <button
