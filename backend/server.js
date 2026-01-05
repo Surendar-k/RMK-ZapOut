@@ -12,7 +12,7 @@ import staffProfileRoutes from "./routes/staffProfileRoutes.js";
 import adminStaffRoutes from "./routes/adminRoutes.js";
 import departmentRoutes from "./routes/departmentRoutes.js";
 import adminStudentRoutes from "./routes/adminStudentRoutes.js";
-
+import staffStudentRoutes from "./routes/staffstudentRoutes.js";
 dotenv.config();
 const app = express();
 
@@ -27,7 +27,7 @@ app.use("/api", adminStaffRoutes);
 
 //students management
 app.use("/api/admin", adminStudentRoutes);
-
+app.use("/api/staff", staffStudentRoutes);
 
 //forms
 app.use("/api/onduty", onDutyRoutes);

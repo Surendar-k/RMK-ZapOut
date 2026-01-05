@@ -13,24 +13,42 @@ export const getDepartments = async (req, res) => {
 };
 
 /* ================= COUNSELLORS BY DEPT ================= */
-export const getCounsellorsByDepartment = async (req, res) => {
+/* ================= STAFF BY DEPARTMENT (COUNSELLOR + COORDINATOR) ================= */
+export const getStaffByDepartment = async (req, res) => {
   const { deptId } = req.params;
 
   try {
     const [rows] = await db.query(
-      `SELECT c.id, u.username
-       FROM counsellors c
-       JOIN users u ON c.user_id = u.id
-       WHERE c.department_id = ?`,
-      [deptId]
+      `
+      SELECT 
+        c.id AS staff_id,
+        u.username,
+        'COUNSELLOR' AS role
+      FROM counsellors c
+      JOIN users u ON u.id = c.user_id
+      WHERE c.department_id = ?
+
+      UNION ALL
+
+      SELECT 
+        co.id AS staff_id,
+        u.username,
+        'COORDINATOR' AS role
+      FROM coordinators co
+      JOIN users u ON u.id = co.user_id
+      WHERE co.department_id = ?
+      `,
+      [deptId, deptId]
     );
+
     res.json(rows);
-  } catch {
-    res.status(500).json({ message: "Failed to load counsellors" });
+  } catch (err) {
+    console.error("getStaffByDepartment:", err);
+    res.status(500).json({ message: "Failed to load staff" });
   }
 };
 
-/* ================= GET ALL STUDENTS ================= */
+/* ================= GET ALL STUDENTS (FIXED) ================= */
 export const getAllStudents = async (req, res) => {
   try {
     const [rows] = await db.query(
@@ -45,16 +63,28 @@ export const getAllStudents = async (req, res) => {
         s.department_id,
         s.counsellor_id,
         d.display_name AS department,
-        cu.username AS counsellor
+
+        /* 🔥 counsellor OR coordinator name */
+        COALESCE(cu.username, co_u.username) AS counsellor
+
       FROM students s
       JOIN users u ON s.user_id = u.id
       LEFT JOIN departments d ON s.department_id = d.id
+
+      /* counsellor mapping */
       LEFT JOIN counsellors c ON s.counsellor_id = c.id
-      LEFT JOIN users cu ON c.user_id = cu.id`
+      LEFT JOIN users cu ON cu.id = c.user_id
+
+      /* coordinator mapping */
+      LEFT JOIN coordinators co ON s.counsellor_id = co.id
+      LEFT JOIN users co_u ON co_u.id = co.user_id
+
+      ORDER BY s.year_of_study, u.username`
     );
 
     res.json(rows);
-  } catch {
+  } catch (err) {
+    console.error("getAllStudents:", err);
     res.status(500).json({ message: "Failed to fetch students" });
   }
 };
@@ -81,6 +111,7 @@ export const getUnassignedStudents = async (req, res) => {
 };
 
 /* ================= CREATE STUDENT ================= */
+/* ================= CREATE STUDENT ================= */
 export const createStudent = async (req, res) => {
   const {
     username,
@@ -89,7 +120,7 @@ export const createStudent = async (req, res) => {
     phone,
     student_type,
     department_id,
-    counsellor_id = null, // OPTIONAL
+    staff_id = null, // counsellor OR coordinator
     year_of_study,
   } = req.body;
 
@@ -112,7 +143,7 @@ export const createStudent = async (req, res) => {
       [
         userResult.insertId,
         department_id,
-        counsellor_id || null,
+        staff_id || null,
         year_of_study,
         student_type,
       ]
@@ -122,31 +153,35 @@ export const createStudent = async (req, res) => {
     res.status(201).json({ message: "Student created successfully" });
   } catch (err) {
     await conn.rollback();
+    console.error("createStudent:", err);
     res.status(500).json({ message: "Student creation failed" });
   } finally {
     conn.release();
   }
 };
 
-/* ================= COUNSELLOR ASSIGN STUDENT ================= */
+
+/* ================= ASSIGN STUDENT (COUNSELLOR / COORDINATOR) ================= */
 export const assignStudentToCounsellor = async (req, res) => {
   const { studentId } = req.params;
-  const { counsellorId } = req.body;
+  const { staffId } = req.body; // counsellor.id OR coordinator.id
 
   try {
     await db.query(
       `UPDATE students
        SET counsellor_id = ?
-       WHERE id = ? AND counsellor_id IS NULL`,
-      [counsellorId, studentId]
+       WHERE id = ?`,
+      [staffId, studentId]
     );
 
     res.json({ message: "Student assigned successfully" });
-  } catch {
+  } catch (err) {
+    console.error("assignStudentToCounsellor:", err);
     res.status(500).json({ message: "Assignment failed" });
   }
 };
 
+/* ================= UPDATE STUDENT ================= */
 /* ================= UPDATE STUDENT ================= */
 export const updateStudent = async (req, res) => {
   const { studentId } = req.params;
@@ -157,7 +192,7 @@ export const updateStudent = async (req, res) => {
     phone,
     student_type,
     department_id,
-    counsellor_id,
+    staff_id, // counsellor OR coordinator
     year_of_study,
   } = req.body;
 
@@ -180,7 +215,7 @@ export const updateStudent = async (req, res) => {
        WHERE id=?`,
       [
         department_id,
-        counsellor_id || null,
+        staff_id || null,
         year_of_study,
         student_type,
         studentId,
@@ -189,13 +224,15 @@ export const updateStudent = async (req, res) => {
 
     await conn.commit();
     res.json({ message: "Student updated successfully" });
-  } catch {
+  } catch (err) {
     await conn.rollback();
+    console.error("updateStudent:", err);
     res.status(500).json({ message: "Update failed" });
   } finally {
     conn.release();
   }
 };
+
 
 /* ================= DELETE STUDENT ================= */
 export const deleteStudent = async (req, res) => {
@@ -215,8 +252,9 @@ export const deleteStudent = async (req, res) => {
 
     await conn.commit();
     res.json({ message: "Student deleted successfully" });
-  } catch {
+  } catch (err) {
     await conn.rollback();
+    console.error("deleteStudent:", err);
     res.status(500).json({ message: "Delete failed" });
   } finally {
     conn.release();

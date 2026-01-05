@@ -22,7 +22,7 @@ const AdminStudents = () => {
     phone: "",
     student_type: "HOSTELLER",
     department_id: "",
-    counsellor_id: "",
+    staff_id: "",
     year_of_study: "",
   });
 
@@ -55,7 +55,7 @@ const AdminStudents = () => {
 
       try {
         const res = await axios.get(
-          `${API}/counsellors/${form.department_id}`
+          `${API}/staff/${form.department_id}`
         );
         setCounsellors(res.data);
       } catch (err) {
@@ -74,30 +74,34 @@ const AdminStudents = () => {
     setForm({
       ...form,
       department_id: e.target.value,
-      counsellor_id: "",
+      staff_id: "",
     });
   };
 
-  const handleSubmit = async () => {
-    try {
-      if (editData) {
-        await axios.put(
-          `${API}/students/${editData.student_id}`,
-          form
-        );
-      } else {
-        await axios.post(`${API}/students`, form);
-      }
+ const handleSubmit = async () => {
+  // Validation
+  if (!form.username || !form.register_number || !form.email || !form.department_id) {
+    alert("Please fill all required fields");
+    return;
+  }
 
-      const res = await axios.get(`${API}/students`);
-      setStudents(res.data);
-
-      setOpen(false);
-      setEditData(null);
-    } catch (err) {
-      console.error(err);
+  try {
+    if (editData) {
+      await axios.put(`${API}/students/${editData.student_id}`, form);
+    } else {
+      await axios.post(`${API}/students`, form);
     }
-  };
+
+    const res = await axios.get(`${API}/students`);
+    setStudents(res.data);
+    setOpen(false);
+    setEditData(null);
+  } catch (err) {
+    console.error("Submit Error:", err.response?.data || err.message);
+    alert(err.response?.data?.message || "Something went wrong!");
+  }
+};
+
 
   const handleEdit = (s) => {
     setEditData(s);
@@ -108,7 +112,7 @@ const AdminStudents = () => {
       phone: s.phone || "",
       student_type: s.student_type,
       department_id: s.department_id,
-      counsellor_id: s.counsellor_id,
+      staff_id: s.staff_id,
       year_of_study: s.year_of_study,
     });
     setOpen(true);
@@ -155,7 +159,7 @@ const AdminStudents = () => {
               phone: "",
               student_type: "HOSTELLER",
               department_id: "",
-              counsellor_id: "",
+              staff_id: "",
               year_of_study: "",
             });
             setOpen(true);
@@ -289,11 +293,11 @@ const AdminStudents = () => {
 
               <Select
                 label="Counsellor"
-                name="counsellor_id"
-                value={form.counsellor_id}
+                name="staff_id"
+                value={form.staff_id}
                 onChange={handleChange}
                 options={counsellors.map((c) => ({
-                  value: c.id,
+                  value: c.staff_id,
                   label: c.username,
                 }))}
               />

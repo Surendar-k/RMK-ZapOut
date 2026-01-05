@@ -1,17 +1,18 @@
 import express from "express";
 import {
   getDepartments,
-  getCounsellorsByDepartment,
+  
   getAllStudents,
   createStudent,
   updateStudent,
   deleteStudent,
+  getStaffByDepartment,
 } from "../controllers/adminStudentController.js";
 
 const router = express.Router();
 
 router.get("/departments", getDepartments);
-router.get("/counsellors/:deptId", getCounsellorsByDepartment);
+router.get("/staff/:deptId", getStaffByDepartment);
 
 router.get("/students", getAllStudents);
 router.post("/students", createStudent);

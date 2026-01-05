@@ -1,0 +1,21 @@
+import axios from "axios";
+
+const API = axios.create({
+  baseURL: "http://localhost:5000/api/staff",
+});
+
+// Department students
+export const fetchDepartmentStudents = (userId, role) =>
+  API.get("/students/department", { params: { userId, role } });
+
+// My counselling students
+export const fetchMyStudents = (userId, role) =>
+  API.get("/students/my", { params: { userId, role } });
+
+// Assign student to logged-in staff
+export const assignStudent = (studentId, staffUserId) =>
+  API.post(`/students/${studentId}/assign`, { staffUserId });
+
+// Unassign student
+export const unassignStudent = (studentId) =>
+  API.delete(`/students/${studentId}/unassign`);

@@ -6,10 +6,9 @@ const API = "http://localhost:5000/api/admin";
 export const fetchDepartments = () =>
   axios.get(`${API}/departments`);
 
-/* ================= COUNSELLORS ================= */
-export const fetchCounsellorsByDept = (deptId) =>
-  axios.get(`${API}/counsellors/${deptId}`);
-
+/* ================= COUNSELLORS + COORDINATORS ================= */
+export const fetchStaffByDept = (deptId) =>
+  axios.get(`${API}/staff/${deptId}`);
 /* ================= STUDENTS ================= */
 export const fetchStudents = () =>
   axios.get(`${API}/students`);

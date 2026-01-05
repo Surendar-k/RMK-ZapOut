@@ -1,144 +1,215 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  Search,
-  UserPlus,
-  Eye,
-  GraduationCap,
-  Mail,
-  Phone,
-} from "lucide-react";
-
-const mockStudents = [
-  {
-    id: 1,
-    name: "Arun Kumar",
-    registerNo: "21IT001",
-    department: "IT",
-    year: "3rd Year",
-    type: "Hosteller",
-    email: "arun.it@rmk.edu.in",
-    phone: "9876543210",
-  },
-  {
-    id: 2,
-    name: "Priya Sharma",
-    registerNo: "21CSE014",
-    department: "CSE",
-    year: "3rd Year",
-    type: "Day Scholar",
-    email: "priya.cse@rmk.edu.in",
-    phone: "9123456780",
-  },
-];
+  fetchDepartmentStudents,
+  fetchMyStudents,
+  assignStudent,
+  unassignStudent,
+} from "../../services/staffStudentService";
 
 const Students = () => {
-  const [search, setSearch] = useState("");
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userId = user?.id; 
+  const role = user?.role;
 
-  const filteredStudents = mockStudents.filter(
+  const [activeTab, setActiveTab] = useState("department");
+  const [students, setStudents] = useState([]);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [processingId, setProcessingId] = useState(null); // disable button during API call
+
+  // Auto-hide message after 3s
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => setMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+
+  // Fetch students
+  const fetchData = async () => {
+    if (!userId || !role) return;
+    setLoading(true);
+    try {
+      const res =
+        activeTab === "department"
+          ? await fetchDepartmentStudents(userId, role)
+          : await fetchMyStudents(userId, role);
+      setStudents(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error(err);
+      setStudents([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [activeTab, userId, role]);
+
+  // Assign student
+  const handleAssign = async (studentId) => {
+    if (!userId) return;
+    setProcessingId(studentId);
+    try {
+      const res = await assignStudent(studentId, userId);
+      if (res.data.success) {
+        setMessage({ type: "success", text: "Student added to counselling!" });
+        await fetchData(); // refresh immediately
+      } else {
+        setMessage({ type: "error", text: res.data.message || "Failed to assign student" });
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage({ type: "error", text: err.response?.data?.message || "Failed to assign student" });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  // Unassign student
+  const handleUnassign = async (studentId) => {
+    setProcessingId(studentId);
+    try {
+      const res = await unassignStudent(studentId);
+      if (res.data.success) {
+        setMessage({ type: "success", text: "Student removed from counselling!" });
+        await fetchData(); // refresh immediately
+      } else {
+        setMessage({ type: "error", text: res.data.message || "Failed to unassign student" });
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage({ type: "error", text: "Failed to unassign student" });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const filteredStudents = students.filter(
     (s) =>
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.registerNo.toLowerCase().includes(search.toLowerCase())
+      s.name?.toLowerCase().includes(search.toLowerCase()) ||
+      s.register_number?.includes(search)
   );
 
   return (
-    <div className="p-6 space-y-6">
-      {/* ================= HEADER ================= */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-white">Students</h1>
+    <div className="p-6">
+      <h2 className="text-2xl font-bold mb-4">Students</h2>
 
-        <button className="flex items-center gap-2 px-4 py-2 rounded-xl
-          bg-[#00d3d1]/20 text-[#00d3d1] hover:bg-[#00d3d1]/30 transition">
-          <UserPlus size={18} />
-          Add Student
+      {/* Toast message */}
+      {message && (
+        <div
+          className={`fixed top-4 right-4 px-4 py-2 rounded shadow-md text-white ${
+            message.type === "success" ? "bg-green-500" : "bg-red-500"
+          }`}
+        >
+          {message.text}
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="flex gap-4 mb-4">
+        <button
+          className={`px-5 py-2 rounded-lg font-medium transition ${
+            activeTab === "department"
+              ? "bg-blue-600 text-white shadow"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+          onClick={() => setActiveTab("department")}
+        >
+          Department Students
+        </button>
+        <button
+          className={`px-5 py-2 rounded-lg font-medium transition ${
+            activeTab === "my"
+              ? "bg-blue-600 text-white shadow"
+              : "bg-gray-200 hover:bg-gray-300"
+          }`}
+          onClick={() => setActiveTab("my")}
+        >
+          My Counselling Students
         </button>
       </div>
 
-      {/* ================= SEARCH ================= */}
-      <div className="relative max-w-md">
-        <Search
-          size={18}
-          className="absolute left-4 top-1/2 -translate-y-1/2 text-white/50"
-        />
-        <input
-          type="text"
-          placeholder="Search by name or register number"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-11 pr-4 py-3 rounded-xl
-          bg-white/5 border border-white/10 text-white
-          placeholder-white/50 focus:outline-none focus:ring-1 focus:ring-[#00d3d1]"
-        />
-      </div>
+      {/* Search */}
+      <input
+        type="text"
+        placeholder="Search by name or register no"
+        className="border p-2 w-full mb-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
-      {/* ================= STUDENT CARDS ================= */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {filteredStudents.map((student) => (
-          <div
-            key={student.id}
-            className="rounded-2xl p-5 bg-white/5 border border-white/10
-            backdrop-blur-xl hover:bg-white/10 transition"
+    {/* Table */}
+{loading ? (
+  <p className="text-gray-300">Loading...</p>
+) : filteredStudents.length === 0 ? (
+  <p className="text-gray-500">No students found</p>
+) : (
+  <div className="overflow-x-auto rounded-3xl border border-white/20 bg-white/10 backdrop-blur-lg shadow-lg">
+    <table className="w-full border-collapse text-sm text-white">
+      <thead className="bg-white/20 backdrop-blur-md text-gray-100">
+        <tr>
+          <th className="p-3 text-left">Name</th>
+          <th className="p-3 text-left">Register</th>
+          <th className="p-3 text-left">Email</th>
+          <th className="p-3 text-left">Dept</th>
+          <th className="p-3 text-left">Year</th>
+          <th className="p-3 text-left">Type</th>
+          <th className="p-3 text-left">Assigned Staff</th>
+          <th className="p-3 text-center">Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {filteredStudents.map((s, idx) => (
+          <tr
+            key={s.id}
+            className={`transition-all duration-300 hover:bg-white/10 ${
+              idx % 2 === 0 ? "bg-white/5" : "bg-white/10"
+            }`}
           >
-            {/* TOP */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-[#00d3d1]/20
-                  flex items-center justify-center text-[#00d3d1]">
-                  <GraduationCap />
-                </div>
-                <div>
-                  <p className="text-white font-medium">{student.name}</p>
-                  <p className="text-xs text-white/60">
-                    {student.registerNo}
-                  </p>
-                </div>
-              </div>
-
-              <span
-                className={`text-xs px-3 py-1 rounded-full
-                ${
-                  student.type === "Hosteller"
-                    ? "bg-green-500/20 text-green-400"
-                    : "bg-blue-500/20 text-blue-400"
-                }`}
-              >
-                {student.type}
-              </span>
-            </div>
-
-            {/* DETAILS */}
-            <div className="space-y-2 text-sm text-white/70">
-              <p>{student.department} • {student.year}</p>
-
-              <div className="flex items-center gap-2">
-                <Mail size={14} />
-                <span>{student.email}</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Phone size={14} />
-                <span>{student.phone}</span>
-              </div>
-            </div>
-
-            {/* ACTION */}
-            <button
-              className="mt-4 w-full flex items-center justify-center gap-2
-              py-2 rounded-xl bg-white/10 hover:bg-white/20
-              text-white transition"
-            >
-              <Eye size={16} />
-              View Profile
-            </button>
-          </div>
+            <td className="p-3">{s.name}</td>
+            <td className="p-3">{s.register_number}</td>
+            <td className="p-3">{s.email}</td>
+            <td className="p-3">{s.department}</td>
+            <td className="p-3">{s.year_of_study}</td>
+            <td className="p-3 text-cyan-400">{s.student_type}</td>
+            <td className="p-3">{s.assigned_staff || "-"}</td>
+            <td className="p-3 text-center flex justify-center gap-2">
+              {activeTab === "department" ? (
+                <button
+                  className={`px-3 py-1 rounded-lg font-medium text-white backdrop-blur-sm transition-all ${
+                    s.assigned_staff
+                      ? "bg-gray-500 cursor-not-allowed"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
+                  onClick={() => !s.assigned_staff && handleAssign(s.id)}
+                  disabled={!!s.assigned_staff || processingId === s.id}
+                >
+                  {processingId === s.id
+                    ? "Processing..."
+                    : s.assigned_staff
+                    ? "Assigned"
+                    : "Add"}
+                </button>
+              ) : (
+                <button
+                  className="px-3 py-1 rounded-lg font-medium bg-red-600 hover:bg-red-700 text-white backdrop-blur-sm transition-all"
+                  onClick={() => handleUnassign(s.id)}
+                  disabled={processingId === s.id}
+                >
+                  {processingId === s.id ? "Processing..." : "Remove"}
+                </button>
+              )}
+            </td>
+          </tr>
         ))}
-      </div>
-
-      {/* ================= EMPTY STATE ================= */}
-      {filteredStudents.length === 0 && (
-        <div className="text-center text-white/60 py-10">
-          No students found
-        </div>
-      )}
+      </tbody>
+    </table>
+  </div>
+)}
     </div>
   );
 };
