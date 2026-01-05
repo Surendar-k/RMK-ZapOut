@@ -95,25 +95,38 @@ export const getMyStudents = async (req, res) => {
     const staffTableId = staffRows[0].id;
 
     /* 2️⃣ Fetch assigned students */
-    const [students] = await db.query(
-      `
-      SELECT 
-        s.id,
-        u.username AS name,
-        u.register_number,
-        u.email,
-        u.phone,
-        d.display_name AS department,
-        s.year_of_study,
-        s.student_type
-      FROM students s
-      JOIN users u ON u.id = s.user_id
-      JOIN departments d ON d.id = s.department_id
-      WHERE s.counsellor_id = ?
-      ORDER BY s.year_of_study, u.username
-      `,
-      [staffTableId]
-    );
+ const [students] = await db.query(
+  `
+  SELECT 
+    s.id,
+    u.username AS name,
+    u.register_number,
+    u.email,
+    u.phone,
+    d.display_name AS department,
+    s.year_of_study,
+    s.student_type,
+    s.counsellor_id,
+
+    /* Fetch staff name */
+    COALESCE(cu.username, co_u.username) AS assigned_staff
+
+  FROM students s
+  JOIN users u ON u.id = s.user_id
+  JOIN departments d ON d.id = s.department_id
+
+  LEFT JOIN counsellors c ON c.id = s.counsellor_id
+  LEFT JOIN users cu ON cu.id = c.user_id
+
+  LEFT JOIN coordinators co ON co.id = s.counsellor_id
+  LEFT JOIN users co_u ON co_u.id = co.user_id
+
+  WHERE s.counsellor_id = ?
+  ORDER BY s.year_of_study, u.username
+  `,
+  [staffTableId]
+);
+
 
     res.json(students);
   } catch (error) {
