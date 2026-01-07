@@ -36,12 +36,14 @@ const StudentLayout = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-   <div className="flex h-screen w-full text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617] overflow-hidden">
+    <div className="flex h-screen w-full text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617] overflow-hidden">
 
       {/* ================= SIDEBAR ================= */}
-     <aside className="w-[260px] h-screen bg-gradient-to-b from-[#071c2f] to-[#04111f] px-6 py-6 flex flex-col border-r border-white/10">
+      {/* ❌ removed px-6 py-6 */}
+      <aside className="w-[260px] h-screen bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617] flex flex-col border-r border-white/10">
 
-        <div className="mb-10 flex justify-center">
+        {/* logo spacing handled here, not on aside */}
+        <div className="px-6 py-6 mb-10 flex justify-center">
           <img
             src={logo}
             alt="RMK ZapOut"
@@ -50,7 +52,7 @@ const StudentLayout = () => {
         </div>
 
         {/* NAVIGATION */}
-        <nav className="space-y-2 flex-1 overflow-y-auto">
+        <nav className="space-y-2 flex-1 overflow-y-auto px-3">
 
           <SidebarItem
             icon={<Home size={18} />}
@@ -103,17 +105,20 @@ const StudentLayout = () => {
         </nav>
 
         {/* LOGOUT */}
-        <button
-          onClick={() => navigate("/")}
-          className="mt-6 flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all"
-        >
-          <LogOut size={18} />
-          <span className="text-sm font-medium">Logout</span>
-        </button>
+        <div className="px-4 pb-6">
+          <button
+            onClick={() => navigate("/")}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all"
+          >
+            <LogOut size={18} />
+            <span className="text-sm font-medium">Logout</span>
+          </button>
+        </div>
       </aside>
 
       {/* ================= MAIN CONTENT ================= */}
-      <main className="flex-1 p-8 overflow-y-auto">
+      {/* ❌ removed p-8 */}
+      <main className="flex-1 h-full overflow-y-auto">
         <Outlet />
       </main>
     </div>

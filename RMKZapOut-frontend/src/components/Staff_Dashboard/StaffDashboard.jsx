@@ -1,33 +1,97 @@
-import { Users, FileText, Clock, CheckCircle, XCircle, Bell } from "lucide-react";
+import {
+  Users,
+  FileText,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Bell,
+  User,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { fetchStaffProfile } from "../../services/staffProfileService";
+
+const GREEN = "text-[#53cf57]";
 
 const StatCard = ({ title, value, icon, color }) => (
   <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6 flex items-center justify-between hover:bg-white/15 transition">
     <div>
-      <p className="text-sm text-cyan-300">{title}</p>
+      <p className={`text-sm ${GREEN}`}>{title}</p>
       <h2 className="text-3xl font-bold text-white mt-1">{value}</h2>
     </div>
-    <div className={`p-4 rounded-xl ${color}`}>
-      {icon}
-    </div>
+    <div className={`p-4 rounded-xl ${color}`}>{icon}</div>
   </div>
 );
 
-const StaffDashboard = ({ role = "counsellor" }) => {
-  return (
-    <div className="flex-1 p-8 overflow-y-auto text-white">
+const StaffDashboard = () => {
+  const [now, setNow] = useState(new Date());
+  const [staff, setStaff] = useState(null);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (!storedUser) return;
+
+    const user = JSON.parse(storedUser);
+
+    fetchStaffProfile(user.id)
+      .then((data) => {
+        setStaff(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  return (
+    <div
+      className="
+        bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]
+        flex-1 min-h-screen overflow-y-auto text-white p-8
+      "
+    >
       {/* ================= HEADER ================= */}
-      <div className="mb-8">
+      <div className="mb-10">
         <h1 className="text-3xl font-bold">
-          {role === "hod"
-            ? "HOD Dashboard"
-            : role === "branch_coordinator"
-            ? "Branch Coordinator Dashboard"
-            : "Counsellor Dashboard"}
+          <span className="text-white">Welcome to </span>
+          <span className="text-[#53cf57]">
+            {staff?.role || "Staff"}
+            <span className="text-white"> Dashboard</span>
+          </span>
         </h1>
-        <p className="text-cyan-300 mt-1">
+
+        <p className="text-white/70 mt-1">
           Manage students, approvals, and live requests
         </p>
+
+        <div className="flex items-center justify-between mt-6">
+          {!loading && staff && (
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                <User className={GREEN} />
+              </div>
+
+              <div>
+                <p className={`text-lg font-semibold ${GREEN}`}>
+                  Hello{staff?.name ? `, ${staff.name}` : ""}
+                </p>
+                <p className="text-xs text-white/60">
+                  {staff.role} | {staff.department}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="text-right">
+            <p className="text-sm text-white/60">{now.toDateString()}</p>
+            <p className={`font-semibold ${GREEN}`}>
+              {now.toLocaleTimeString()}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* ================= STATS ================= */}
@@ -60,11 +124,9 @@ const StaffDashboard = ({ role = "counsellor" }) => {
 
       {/* ================= LIVE REQUESTS ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-        {/* Requests */}
         <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-cyan-300" />
+          <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${GREEN}`}>
+            <FileText className={`w-5 h-5 ${GREEN}`} />
             Live Requests
           </h2>
 
@@ -79,8 +141,8 @@ const StaffDashboard = ({ role = "counsellor" }) => {
                 className="flex justify-between items-center p-4 rounded-xl bg-white/5 hover:bg-white/10 transition"
               >
                 <div>
-                  <p className="font-semibold">{req.name}</p>
-                  <p className="text-sm text-cyan-300">{req.type}</p>
+                  <p className="font-semibold text-white">{req.name}</p>
+                  <p className={`text-sm ${GREEN}`}>{req.type}</p>
                 </div>
                 <span className="text-yellow-300 text-sm font-medium">
                   {req.status}
@@ -90,46 +152,26 @@ const StaffDashboard = ({ role = "counsellor" }) => {
           </div>
         </div>
 
-        {/* Notifications */}
+        {/* ================= NOTIFICATIONS ================= */}
         <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6">
-          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Bell className="w-5 h-5 text-cyan-300" />
+          <h2 className={`text-xl font-semibold mb-4 flex items-center gap-2 ${GREEN}`}>
+            <Bell className={`w-5 h-5 ${GREEN}`} />
             Notifications
           </h2>
 
           <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-white/5">
-              <p className="text-sm">
-                🔔 New Gate Pass request from <b>Arjun S</b>
-              </p>
+            <div className="p-4 rounded-xl bg-white/5 text-white">
+              🔔 New Gate Pass request from <b>Arjun S</b>
             </div>
-            <div className="p-4 rounded-xl bg-white/5">
-              <p className="text-sm">
-                ✅ OD request approved for <b>Kavya R</b>
-              </p>
+            <div className="p-4 rounded-xl bg-white/5 text-white">
+              ✅ OD request approved for <b>Kavya R</b>
             </div>
-            <div className="p-4 rounded-xl bg-white/5">
-              <p className="text-sm">
-                ⏰ Return time nearing for <b>Rahul M</b>
-              </p>
+            <div className="p-4 rounded-xl bg-white/5 text-white">
+              ⏰ Return time nearing for <b>Rahul M</b>
             </div>
           </div>
         </div>
       </div>
-
-      {/* ================= ROLE NOTE ================= */}
-      {role === "hod" && (
-        <div className="mt-10 backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-cyan-300 mb-2">
-            HOD Privileges
-          </h2>
-          <ul className="list-disc ml-6 text-sm space-y-1 text-white/80">
-            <li>Final authority on Gate Pass & On-Duty approvals</li>
-            <li>View department-wide analytics</li>
-            <li>Override approvals in special cases</li>
-          </ul>
-        </div>
-      )}
     </div>
   );
 };
