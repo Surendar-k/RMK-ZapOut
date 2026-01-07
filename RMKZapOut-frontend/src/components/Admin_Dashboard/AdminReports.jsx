@@ -119,7 +119,7 @@ const AdminReports = () => {
     <div className="w-full min-h-screen p-8 text-white relative">
       {/* HEADER */}
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-semibold flex items-center gap-2">
+<h1 className="text-2xl font-semibold flex items-center gap-2 text-red-500">
           <FileText size={26} />
           Reports & Analytics
         </h1>

@@ -8,6 +8,7 @@ import {
   Bell,
   Activity,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const StatCard = ({ icon, title, value, color }) => (
   <div className="backdrop-blur-xl bg-white/10 border border-white/15 rounded-2xl p-5 flex items-center gap-4 hover:bg-white/15 transition">
@@ -17,7 +18,7 @@ const StatCard = ({ icon, title, value, color }) => (
       {icon}
     </div>
     <div>
-      <p className="text-sm text-white/70">{title}</p>
+      <p className="text-sm text-red-500">{title}</p>
       <h3 className="text-2xl font-bold text-white">{value}</h3>
     </div>
   </div>
@@ -25,21 +26,42 @@ const StatCard = ({ icon, title, value, color }) => (
 
 const SectionCard = ({ title, children }) => (
   <div className="backdrop-blur-xl bg-white/10 border border-white/15 rounded-2xl p-6">
-    <h3 className="text-lg font-semibold text-white mb-4">{title}</h3>
+    <h3 className="text-lg font-semibold text-red-500 mb-4">{title}</h3>
     {children}
   </div>
 );
 
 const AdminDashboard = () => {
+  const [now, setNow] = useState(new Date());
+
+  /* LIVE CLOCK */
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <div className="p-8 space-y-8">
 
       {/* ================= HEADER ================= */}
-      <div>
-        <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
-        <p className="text-white/70 mt-1">
-          System overview & administrative controls
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold">
+            <span className="text-white">Welcome to </span>
+            <span className="text-red-500">Admin Dashboard</span>
+          </h1>
+          <p className="text-white/70 mt-1">
+            System overview & administrative controls
+          </p>
+        </div>
+
+        {/* DATE & TIME (TOP RIGHT) */}
+        <div className="text-right text-sm text-white/70">
+          <p>{now.toDateString()}</p>
+          <p className="text-red-500 font-semibold">
+            {now.toLocaleTimeString()}
+          </p>
+        </div>
       </div>
 
       {/* ================= STATS ================= */}
@@ -73,7 +95,6 @@ const AdminDashboard = () => {
       {/* ================= MID SECTIONS ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* DEPARTMENTS */}
         <SectionCard title="Departments Overview">
           <div className="flex items-center justify-between mb-3 text-white/80">
             <span className="flex items-center gap-2">
@@ -82,11 +103,10 @@ const AdminDashboard = () => {
             <span className="font-semibold">12</span>
           </div>
           <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-            <div className="h-full w-[75%] bg-cyan-400 rounded-full"></div>
+            <div className="h-full w-[75%] bg-red-500 rounded-full"></div>
           </div>
         </SectionCard>
 
-        {/* REPORTS */}
         <SectionCard title="Reports Summary">
           <div className="space-y-3 text-white/80">
             <div className="flex justify-between">
@@ -108,7 +128,6 @@ const AdminDashboard = () => {
       {/* ================= BOTTOM SECTIONS ================= */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* NOTIFICATIONS */}
         <SectionCard title="Recent Notifications">
           <ul className="space-y-3 text-white/80 text-sm">
             <li className="flex justify-between">
@@ -126,7 +145,6 @@ const AdminDashboard = () => {
           </ul>
         </SectionCard>
 
-        {/* AUDIT LOGS */}
         <SectionCard title="Audit Logs">
           <ul className="space-y-3 text-white/80 text-sm">
             <li className="flex justify-between">
@@ -144,20 +162,19 @@ const AdminDashboard = () => {
           </ul>
         </SectionCard>
 
-        {/* SYSTEM STATUS */}
         <SectionCard title="System Status">
           <div className="space-y-3 text-sm">
             <div className="flex justify-between text-white/80">
               <span>Server</span>
-              <span className="text-green-400">Online</span>
+              <span className="text-red-500">Online</span>
             </div>
             <div className="flex justify-between text-white/80">
               <span>Database</span>
-              <span className="text-green-400">Connected</span>
+              <span className="text-red-500">Connected</span>
             </div>
             <div className="flex justify-between text-white/80">
               <span>API Health</span>
-              <span className="text-green-400">Stable</span>
+              <span className="text-red-500">Stable</span>
             </div>
           </div>
         </SectionCard>

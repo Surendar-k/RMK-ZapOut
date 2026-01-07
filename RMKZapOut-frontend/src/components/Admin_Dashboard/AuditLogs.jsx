@@ -68,7 +68,7 @@ const AuditLogs = () => {
 
       {/* HEADER */}
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold">🛡️ Audit Logs</h1>
+        <h1 className="text-2xl text-red-500 font-semibold">🛡️ Audit Logs</h1>
         <p className="text-white/60 text-sm">
           Track all system & user activities
         </p>

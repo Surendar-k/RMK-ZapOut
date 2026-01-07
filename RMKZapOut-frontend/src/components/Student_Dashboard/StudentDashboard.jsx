@@ -21,13 +21,11 @@ const StudentDashboard = () => {
   const glass =
     "bg-black/40 backdrop-blur-2xl border border-white/25 rounded-2xl shadow-2xl";
 
-  /* ================= LIVE CLOCK ================= */
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  /* ================= FETCH STUDENT PROFILE ================= */
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
 
@@ -65,14 +63,14 @@ const StudentDashboard = () => {
   }
 
   return (
-  <div className="h-full w-full text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
-        <main className="min-h-screen flex flex-col overflow-y-auto px-8 py-6">
+    <div className="h-full w-full text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
+      <main className="min-h-screen flex flex-col overflow-y-auto px-8 py-6">
 
-        {/* ================= HEADER ================= */}
+        {/* HEADER */}
         <div className="mb-8">
           <h1 className="text-3xl font-semibold">
             Welcome to{" "}
-            <span className="text-cyan-300">Student Dashboard</span>
+            <span className="text-[#53eafd]">Student Dashboard</span>
           </h1>
           <p className="text-gray-300 mt-2 max-w-3xl">
             Manage your gate pass and on-duty requests, track approval status,
@@ -80,22 +78,20 @@ const StudentDashboard = () => {
           </p>
         </div>
 
-        {/* ================= GREETING ================= */}
+        {/* GREETING */}
         <div className="flex justify-between items-start mb-8">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-cyan-400/20 flex items-center justify-center">
-              <User className="text-cyan-300" />
+            <div className="w-12 h-12 rounded-full bg-[#53eafd]/20 flex items-center justify-center">
+              <User className="text-[#53eafd]" />
             </div>
             <div>
               <h1 className="text-2xl font-semibold text-white">
                 Hello,{" "}
-                <span className="text-cyan-300">
-                  {student.username}
-                </span>
+                <span className="text-[#53eafd]">{student.username}</span>
               </h1>
               <p className="text-sm text-gray-300 mt-1">
                 {student.role} | {student.register_number} |{" "}
-                <span className="text-cyan-200">
+                <span className="text-[#53eafd]">
                   {student.student_type}
                 </span>
               </p>
@@ -104,45 +100,44 @@ const StudentDashboard = () => {
 
           <div className="text-right text-sm text-gray-300">
             <p>{now.toDateString()}</p>
-            <p className="text-cyan-300 font-semibold">
+            <p className="text-[#53eafd] font-semibold">
               {now.toLocaleTimeString()}
             </p>
           </div>
         </div>
 
-        {/* ================= SUMMARY CARDS ================= */}
+        {/* SUMMARY CARDS */}
         <div className="grid grid-cols-4 gap-8 mb-8">
           <SummaryCard
-  title="Total Requests"
-  value="12"
-  icon={<FileText />}
-  iconClass="bg-cyan-400/20 text-cyan-300"
-/>
+            title="Total Requests"
+            value="12"
+            icon={<FileText />}
+            iconClass="bg-cyan-400/20 text-cyan-300"
+          />
 
-<SummaryCard
-  title="Pending"
-  value="2"
-  icon={<Clock />}
-  iconClass="bg-yellow-400/20 text-yellow-300"
-/>
+          <SummaryCard
+            title="Pending"
+            value="2"
+            icon={<Clock />}
+            iconClass="bg-yellow-400/20 text-yellow-300"
+          />
 
-<SummaryCard
-  title="Approved"
-  value="9"
-  icon={<CheckCircle />}
-  iconClass="bg-green-400/20 text-green-300"
-/>
+          <SummaryCard
+            title="Approved"
+            value="9"
+            icon={<CheckCircle />}
+            iconClass="bg-green-400/20 text-green-300"
+          />
 
-<SummaryCard
-  title="Rejected"
-  value="1"
-  icon={<XCircle />}
-  iconClass="bg-red-400/20 text-red-300"
-/>
-
+          <SummaryCard
+            title="Rejected"
+            value="1"
+            icon={<XCircle />}
+            iconClass="bg-red-400/20 text-red-300"
+          />
         </div>
 
-        {/* ================= APPLY BUTTONS ================= */}
+        {/* APPLY BUTTONS */}
         <div
           className={`grid ${
             student.student_type?.toLowerCase() === "hosteller"
@@ -163,12 +158,12 @@ const StudentDashboard = () => {
           />
         </div>
 
-        {/* ================= MAIN CONTENT ================= */}
+        {/* MAIN CONTENT */}
         <div className="grid grid-cols-2 gap-8 flex-1">
 
           <div className={`${glass} p-6`}>
-            <h2 className="flex items-center gap-2 text-xl font-bold text-white mb-6">
-              <FileText className="text-cyan-300" />
+            <h2 className="flex items-center gap-2 text-xl font-bold text-[#53eafd] mb-6">
+              <FileText className="text-[#53eafd]" />
               Live Requests
             </h2>
 
@@ -185,8 +180,8 @@ const StudentDashboard = () => {
           </div>
 
           <div className={`${glass} p-6`}>
-            <h2 className="flex items-center gap-2 text-xl font-bold text-white mb-6">
-              <Bell className="text-cyan-300" />
+            <h2 className="flex items-center gap-2 text-xl font-bold text-[#53eafd] mb-6">
+              <Bell className="text-[#53eafd]" />
               Notifications
             </h2>
 
@@ -200,12 +195,12 @@ const StudentDashboard = () => {
   );
 };
 
-/* ================= COMPONENTS ================= */
+/* COMPONENTS */
 
 const SummaryCard = ({ title, value, icon, iconClass }) => (
   <div className="bg-black/40 backdrop-blur-2xl border border-white/25 rounded-2xl shadow-2xl p-6 flex items-center justify-between">
     <div>
-      <p className="text-sm text-gray-300 tracking-wide">{title}</p>
+      <p className="text-sm text-[#53eafd] tracking-wide">{title}</p>
       <p className="text-4xl font-bold text-white mt-1">{value}</p>
     </div>
     <div className={`p-4 rounded-xl ${iconClass}`}>
@@ -213,7 +208,6 @@ const SummaryCard = ({ title, value, icon, iconClass }) => (
     </div>
   </div>
 );
-
 
 const ApplyCard = ({ title, onClick }) => (
   <div

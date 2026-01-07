@@ -73,8 +73,8 @@ const AdminNotifications = () => {
       {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
-          <Bell className="text-cyan-400" />
-          <h1 className="text-2xl font-semibold">Admin Notifications</h1>
+          <Bell className="text-red-500" />
+          <h1 className="text-2xl text-red-500 font-semibold">Admin Notifications</h1>
           {unreadCount > 0 && (
             <span className="ml-2 px-3 py-1 rounded-full text-xs bg-red-500">
               {unreadCount} Unread
