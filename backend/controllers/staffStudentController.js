@@ -2,7 +2,6 @@ import db from "../config/db.js";
 
 /* =========================================
    GET DEPARTMENT STUDENTS
-   (Counsellor / Coordinator / HOD)
 ========================================= */
 export const getDepartmentStudents = async (req, res) => {
   try {
@@ -14,11 +13,10 @@ export const getDepartmentStudents = async (req, res) => {
 
     /* 1️⃣ Get department of logged-in staff */
     let deptQuery = "";
-
     if (role === "COUNSELLOR")
-      deptQuery = `SELECT department_id FROM counsellors WHERE user_id = ?`;
+      deptQuery = `SELECT department_id, academic_type FROM counsellors WHERE user_id = ?`;
     else if (role === "COORDINATOR")
-      deptQuery = `SELECT department_id FROM coordinators WHERE user_id = ?`;
+      deptQuery = `SELECT department_id, academic_type FROM coordinators WHERE user_id = ?`;
     else if (role === "HOD")
       deptQuery = `SELECT department_id FROM hods WHERE user_id = ?`;
 
@@ -26,41 +24,40 @@ export const getDepartmentStudents = async (req, res) => {
     if (deptRows.length === 0) return res.json([]);
 
     const departmentId = deptRows[0].department_id;
+    const staffAcademicType = deptRows[0].academic_type || null;
 
-    /* 2️⃣ Fetch students + assigned staff (Counsellor OR Coordinator) */
-    const [students] = await db.query(
-      `
-      SELECT 
-        s.id,
-        u.username AS name,
-        u.register_number,
-        u.email,
-        u.phone,
-        d.display_name AS department,
-        s.year_of_study,
-        s.student_type,
-        s.counsellor_id,
+    /* 2️⃣ Fetch students */
+const [students] = await db.query(
+  `
+  SELECT 
+    s.id,
+    u.username AS name,
+    u.register_number,
+    u.email,
+    u.phone,
+    d.display_name AS department,
+    s.year_of_study,
+    s.student_type,
+    s.counsellor_id,
+    COALESCE(cu.username, co_u.username) AS assigned_staff
+  FROM students s
+  JOIN users u ON u.id = s.user_id
+  JOIN departments d ON d.id = s.department_id
+  LEFT JOIN counsellors c ON c.id = s.counsellor_id
+  LEFT JOIN users cu ON cu.id = c.user_id
+  LEFT JOIN coordinators co ON co.id = s.counsellor_id
+  LEFT JOIN users co_u ON co_u.id = co.user_id
+  WHERE s.department_id = ?
+    AND (
+      (? = 'BASE_DEPT' AND s.year_of_study = 1)
+      OR (? = 'CORE_DEPT' AND s.year_of_study > 1)
+      OR (? IS NULL)  -- HOD or staff without academic_type see all
+    )
+  ORDER BY s.year_of_study, u.username
+  `,
+  [departmentId, staffAcademicType, staffAcademicType, staffAcademicType]
+);
 
-        /* Show counsellor OR coordinator name */
-        COALESCE(cu.username, co_u.username) AS assigned_staff
-
-      FROM students s
-      JOIN users u ON u.id = s.user_id
-      JOIN departments d ON d.id = s.department_id
-
-      /* Counsellor join */
-      LEFT JOIN counsellors c ON c.id = s.counsellor_id
-      LEFT JOIN users cu ON cu.id = c.user_id
-
-      /* Coordinator join */
-      LEFT JOIN coordinators co ON co.id = s.counsellor_id
-      LEFT JOIN users co_u ON co_u.id = co.user_id
-
-      WHERE s.department_id = ?
-      ORDER BY s.year_of_study, u.username
-      `,
-      [departmentId]
-    );
 
     res.json(students);
   } catch (error) {
@@ -71,7 +68,6 @@ export const getDepartmentStudents = async (req, res) => {
 
 /* =========================================
    GET MY STUDENTS
-   (Counsellor OR Coordinator)
 ========================================= */
 export const getMyStudents = async (req, res) => {
   try {
@@ -80,19 +76,19 @@ export const getMyStudents = async (req, res) => {
     if (!userId || !["COUNSELLOR", "COORDINATOR"].includes(role))
       return res.json([]);
 
-    /* 1️⃣ Get staff table ID */
+    /* 1️⃣ Get staff table ID and academic_type */
     const [staffRows] = await db.query(
       `
-      SELECT id FROM counsellors WHERE user_id = ?
+      SELECT id, academic_type FROM counsellors WHERE user_id = ?
       UNION ALL
-      SELECT id FROM coordinators WHERE user_id = ?
+      SELECT id, academic_type FROM coordinators WHERE user_id = ?
       `,
       [userId, userId]
     );
-
     if (staffRows.length === 0) return res.json([]);
 
     const staffTableId = staffRows[0].id;
+    const staffAcademicType = staffRows[0].academic_type;
 
     /* 2️⃣ Fetch assigned students */
  const [students] = await db.query(
@@ -107,24 +103,23 @@ export const getMyStudents = async (req, res) => {
     s.year_of_study,
     s.student_type,
     s.counsellor_id,
-
-    /* Fetch staff name */
     COALESCE(cu.username, co_u.username) AS assigned_staff
-
   FROM students s
   JOIN users u ON u.id = s.user_id
   JOIN departments d ON d.id = s.department_id
-
   LEFT JOIN counsellors c ON c.id = s.counsellor_id
   LEFT JOIN users cu ON cu.id = c.user_id
-
   LEFT JOIN coordinators co ON co.id = s.counsellor_id
   LEFT JOIN users co_u ON co_u.id = co.user_id
-
   WHERE s.counsellor_id = ?
+    AND (
+      (? = 'BASE_DEPT' AND s.year_of_study = 1)
+      OR (? = 'CORE_DEPT' AND s.year_of_study > 1)
+      OR (? IS NULL)
+    )
   ORDER BY s.year_of_study, u.username
   `,
-  [staffTableId]
+  [staffTableId, staffAcademicType, staffAcademicType, staffAcademicType]
 );
 
 
@@ -137,42 +132,62 @@ export const getMyStudents = async (req, res) => {
 
 /* =========================================
    ASSIGN STUDENT
-   (Counsellor OR Coordinator)
 ========================================= */
 export const assignStudent = async (req, res) => {
   try {
-    const { staffUserId } = req.body; // users.id
+    const { staffUserId } = req.body;
     const studentId = req.params.id;
 
     if (!staffUserId || !studentId)
-      return res.status(400).json({
-        success: false,
-        message: "Missing studentId or staffUserId",
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing studentId or staffUserId" });
 
-    /* 1️⃣ Find staff in counsellors / coordinators */
+    /* 1️⃣ Get staff info */
     const [staffRows] = await db.query(
       `
-      SELECT id FROM counsellors WHERE user_id = ?
+      SELECT id, academic_type FROM counsellors WHERE user_id = ?
       UNION ALL
-      SELECT id FROM coordinators WHERE user_id = ?
+      SELECT id, academic_type FROM coordinators WHERE user_id = ?
       `,
       [staffUserId, staffUserId]
     );
-
     if (staffRows.length === 0)
-      return res.status(403).json({
-        success: false,
-        message: "Only counsellor or coordinator can be assigned",
-      });
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "Only counsellor or coordinator can be assigned",
+        });
 
     const staffTableId = staffRows[0].id;
+    const staffAcademicType = staffRows[0].academic_type;
 
-    /* 2️⃣ Assign student */
-    await db.query(
-      `UPDATE students SET counsellor_id = ? WHERE id = ?`,
-      [staffTableId, studentId]
+    /* 2️⃣ Get student year */
+    const [studentRows] = await db.query(
+      `SELECT year_of_study FROM students WHERE id = ?`,
+      [studentId]
     );
+    if (studentRows.length === 0)
+      return res
+        .status(404)
+        .json({ success: false, message: "Student not found" });
+
+    const studentYear = studentRows[0].year_of_study;
+
+    /* 3️⃣ Restrict 1st-year assignment */
+    if (studentYear === 1 && staffAcademicType !== "BASE_DEPT") {
+      return res.status(403).json({
+        success: false,
+        message: "Only BASE_DEPT staff can be assigned 1st-year students",
+      });
+    }
+
+    /* 4️⃣ Assign student */
+    await db.query(`UPDATE students SET counsellor_id = ? WHERE id = ?`, [
+      staffTableId,
+      studentId,
+    ]);
 
     res.json({ success: true });
   } catch (error) {
@@ -189,15 +204,13 @@ export const unassignStudent = async (req, res) => {
     const studentId = req.params.id;
 
     if (!studentId)
-      return res.status(400).json({
-        success: false,
-        message: "Missing studentId",
-      });
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing studentId" });
 
-    await db.query(
-      `UPDATE students SET counsellor_id = NULL WHERE id = ?`,
-      [studentId]
-    );
+    await db.query(`UPDATE students SET counsellor_id = NULL WHERE id = ?`, [
+      studentId,
+    ]);
 
     res.json({ success: true });
   } catch (error) {
