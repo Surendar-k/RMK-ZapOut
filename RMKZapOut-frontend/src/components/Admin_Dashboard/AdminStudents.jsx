@@ -103,20 +103,39 @@ const AdminStudents = () => {
     }
   };
 
-  const handleEdit = (s) => {
-    setEditData(s);
-    setForm({
-      username: s.username,
-      register_number: s.register_number,
-      email: s.email,
-      phone: s.phone || "",
-      student_type: s.student_type,
-      department_id: s.department_id,
-      staff_id: s.staff_id,
-      year_of_study: s.year_of_study,
-    });
-    setOpen(true);
-  };
+ const handleEdit = async (s) => {
+  setEditData(s);
+  setForm({
+    username: s.username,
+    register_number: s.register_number,
+    email: s.email,
+    phone: s.phone || "",
+    student_type: s.student_type,
+    department_id: s.department_id,
+    staff_id: s.counsellor_id,
+    year_of_study: s.year_of_study,
+  });
+
+  // Fetch counsellors for this department & year
+  let academic_type = s.year_of_study === "1" || s.year_of_study === 1
+    ? "BASE_DEPT"
+    : "CORE_DEPT";
+
+  try {
+    const res = await axios.get(`${API}/staff/${s.department_id}?academic_type=${academic_type}`);
+    setCounsellors(res.data);
+
+    // Now set the staff_id if exists in fetched counsellors
+    if (res.data.find((c) => c.staff_id === s.staff_id)) {
+      setForm((prev) => ({ ...prev, staff_id: s.staff_id }));
+    }
+  } catch (err) {
+    console.error(err);
+  }
+
+  setOpen(true);
+};
+
 
   const handleDeleteClick = (id) => {
     setDeleteId(id);

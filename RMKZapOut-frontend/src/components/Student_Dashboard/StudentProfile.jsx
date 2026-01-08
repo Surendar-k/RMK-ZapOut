@@ -72,6 +72,7 @@ const StudentProfile = () => {
           motherMobile: p.mother_mobile || "",
           guardianName: p.guardian_name || "",
           guardianMobile: p.guardian_mobile || "",
+          guardianAddress: p.guardian_address || "",
         };
 
         setForm(mapped);
@@ -245,6 +246,12 @@ const ParentsFields = ({ editing, form, setForm }) => (
     <Divider />
     <Input label="Guardian Name" value={form.guardianName} onChange={(e) => setForm({ ...form, guardianName: e.target.value })} />
     <Input label="Guardian Mobile" value={form.guardianMobile} onChange={(e) => setForm({ ...form, guardianMobile: e.target.value })} />
+    <Input
+  label="Guardian Address"
+  value={form.guardianAddress}
+  onChange={(e) => setForm({ ...form, guardianAddress: e.target.value })}
+/>
+
   </div>
 );
 

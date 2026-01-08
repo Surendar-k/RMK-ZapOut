@@ -30,6 +30,7 @@ export const getStudentProfile = async (req, res) => {
         s.mother_mobile,
         s.guardian_name,
         s.guardian_mobile,
+        s.guardian_address,
 
         d.name AS department,
 
@@ -83,6 +84,7 @@ export const updateStudentProfile = async (req, res) => {
     // STUDENTS
     await db.query(
       `UPDATE students SET
+           section = ?,
         hostel_name = ?,
         room_number = ?,
         bus_details = ?,
@@ -91,9 +93,11 @@ export const updateStudentProfile = async (req, res) => {
         mother_name = ?,
         mother_mobile = ?,
         guardian_name = ?,
-        guardian_mobile = ?
+        guardian_mobile = ?,
+         guardian_address = ?
        WHERE user_id = ?`,
       [
+        d.section || null,
         d.hostel || null,
         d.room || null,
         d.bus || null,
@@ -103,6 +107,7 @@ export const updateStudentProfile = async (req, res) => {
         d.motherMobile || null,
         d.guardianName || null,
         d.guardianMobile || null,
+        d.guardianAddress || null,
         userId,
       ]
     );
