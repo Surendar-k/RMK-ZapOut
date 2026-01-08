@@ -12,6 +12,7 @@ const StaffProfile = () => {
   const [profile, setProfile] = useState(null);
   const [tempProfile, setTempProfile] = useState(null);
   const [departments, setDepartments] = useState([]);
+const [errorMsg, setErrorMsg] = useState("");
 
   // Fetch profile
   const loadProfile = async () => {
@@ -44,19 +45,31 @@ const StaffProfile = () => {
     }
   }, [sessionUser?.id]);
 
-  const handleEdit = () => setEditMode(true);
+const handleEdit = () => {
+  setErrorMsg("");
+  setEditMode(true);
+};
 
-  const handleSave = async () => {
-    try {
-      await updateStaffProfile(sessionUser.id, tempProfile);
-      setProfile(tempProfile);
-      setEditMode(false);
-      alert("Profile updated successfully");
-    } catch (err) {
-      console.error(err);
-      alert("Update failed");
-    }
-  };
+
+const handleSave = async () => {
+  try {
+    setErrorMsg(""); // clear old errors
+
+    await updateStaffProfile(sessionUser.id, tempProfile);
+    setProfile(tempProfile);
+    setEditMode(false);
+  } catch (err) {
+    console.error("Profile update error:", err);
+
+    const message =
+      err?.response?.data?.message ||
+      "Failed to update profile. Please try again.";
+
+    setErrorMsg(message); // ✅ show UI error box
+  }
+};
+
+
 
   const handleReset = () => setTempProfile(profile);
 
@@ -83,6 +96,11 @@ const StaffProfile = () => {
           )}
         </div>
       </div>
+{errorMsg && (
+  <div className="mb-6 rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-red-300">
+    <p className="text-sm font-medium">{errorMsg}</p>
+  </div>
+)}
 
       {/* BASIC DETAILS */}
       <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6 mb-6">
@@ -150,6 +168,26 @@ const StaffProfile = () => {
               ))}
             </select>
           </div>
+{/* YEAR (ONLY FOR COORDINATOR) */}
+{tempProfile.role === "COORDINATOR" && (
+  <div>
+    <label className="text-sm text-white/70 mb-1 block">Year</label>
+    <select
+      disabled={!editMode}
+      value={tempProfile.year || ""}
+      onChange={(e) =>
+        setTempProfile({ ...tempProfile, year: Number(e.target.value) })
+      }
+      className="bg-black/30 border border-white/10 rounded-xl px-3 py-2 w-full text-white"
+    >
+      <option value="">Select Year</option>
+      <option value={1}>1st Year</option>
+      <option value={2}>2nd Year</option>
+      <option value={3}>3rd Year</option>
+      <option value={4}>4th Year</option>
+    </select>
+  </div>
+)}
 
           {/* DESIGNATION */}
           <InputField
