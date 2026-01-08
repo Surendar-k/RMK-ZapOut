@@ -156,7 +156,7 @@ const StudentProfile = () => {
 
   /* ================= UI ================= */
   return (
-    <div className="relative h-screen w-full overflow-hidden text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
+    <div className="min-h-screen w-full text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]/30">
       <div className="h-full px-10 py-6 overflow-y-auto">
         <div className="grid grid-cols-2 gap-8">
 

@@ -52,7 +52,7 @@ const AdminSettings = () => {
     <div className="p-8 space-y-8">
       {/* HEADER */}
       <div>
-        <h1 className="text-3xl font-bold text-white">Settings</h1>
+        <h1 className="text-3xl font-bold text-red-500">Settings</h1>
         <p className="text-white/60 text-sm">
           Manage system preferences and security controls
         </p>

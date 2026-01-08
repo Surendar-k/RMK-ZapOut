@@ -141,7 +141,7 @@ const AdminStudents = () => {
       {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3 text-2xl font-semibold">
-          <Users className="text-cyan-400" /> Students Management
+          <Users className="text-red-500" /> <text className="text-red-500">Students Management</text>
         </div>
         <button
           onClick={() => {

@@ -88,7 +88,7 @@ const Departments = () => {
   return (
     <div className="p-6 text-white">
       <h1 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-        <Building2 className="text-cyan-400" /> Departments
+        <Building2 className="text-red-500" /> <text className="text-red-500">Departments</text>
       </h1>
 
       {/* SEARCH */}

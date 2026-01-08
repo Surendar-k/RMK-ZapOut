@@ -204,7 +204,7 @@ const AdminStaffs = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-semibold text-white flex gap-2">
-          <Users className="text-cyan-400" /> Staff Management
+          <Users className="text-red-500" /> <text className="text-red-500">Staff Management</text>
         </h1>
 
         {adminId && (

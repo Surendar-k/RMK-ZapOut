@@ -19,15 +19,13 @@ const StudentDashboard = () => {
   const [now, setNow] = useState(new Date());
 
   const glass =
-    "bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-xl";
+    "bg-black/40 backdrop-blur-2xl border border-white/25 rounded-2xl shadow-2xl";
 
-  /* ================= LIVE CLOCK ================= */
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  /* ================= FETCH STUDENT PROFILE ================= */
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
 
@@ -50,7 +48,7 @@ const StudentDashboard = () => {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center text-white bg-[#020617]">
+      <div className="min-h-screen flex items-center justify-center text-white bg-[#020617]">
         Loading dashboard...
       </div>
     );
@@ -58,47 +56,42 @@ const StudentDashboard = () => {
 
   if (!student) {
     return (
-      <div className="h-screen flex items-center justify-center text-white bg-[#020617]">
+      <div className="min-h-screen flex items-center justify-center text-white bg-[#020617]">
         Unable to load dashboard
       </div>
     );
   }
 
-  /* ================= ROLE LOGIC ================= */
-
   return (
     <div className="h-full w-full text-white bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
+      <main className="min-h-screen flex flex-col overflow-y-auto px-8 py-6">
 
-      <main className="h-full px-10 py-6 flex flex-col overflow-y-auto">
-
-        {/* ================= HEADER ================= */}
+        {/* HEADER */}
         <div className="mb-8">
           <h1 className="text-3xl font-semibold">
             Welcome to{" "}
-            <span className="text-cyan-400">Student Dashboard</span>
+            <span className="text-[#53eafd]">Student Dashboard</span>
           </h1>
-          <p className="text-gray-400 mt-2 max-w-3xl">
+          <p className="text-gray-300 mt-2 max-w-3xl">
             Manage your gate pass and on-duty requests, track approval status,
             and stay informed about your campus activities.
           </p>
         </div>
 
-        {/* ================= GREETING ================= */}
+        {/* GREETING */}
         <div className="flex justify-between items-start mb-8">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center">
-              <User className="text-cyan-400" />
+            <div className="w-12 h-12 rounded-full bg-[#53eafd]/20 flex items-center justify-center">
+              <User className="text-[#53eafd]" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold">
+              <h1 className="text-2xl font-semibold text-white">
                 Hello,{" "}
-                <span className="text-cyan-400">
-                  {student.username}
-                </span>
+                <span className="text-[#53eafd]">{student.username}</span>
               </h1>
-              <p className="text-sm text-gray-400 mt-1">
+              <p className="text-sm text-gray-300 mt-1">
                 {student.role} | {student.register_number} |{" "}
-                <span className="text-cyan-300">
+                <span className="text-[#53eafd]">
                   {student.student_type}
                 </span>
               </p>
@@ -107,45 +100,70 @@ const StudentDashboard = () => {
 
           <div className="text-right text-sm text-gray-300">
             <p>{now.toDateString()}</p>
-            <p className="text-cyan-400 font-medium">
+            <p className="text-[#53eafd] font-semibold">
               {now.toLocaleTimeString()}
             </p>
           </div>
         </div>
 
-        {/* ================= SUMMARY CARDS ================= */}
+        {/* SUMMARY CARDS */}
         <div className="grid grid-cols-4 gap-8 mb-8">
-          <SummaryCard title="Total Requests" value="12" icon={<FileText />} />
-          <SummaryCard title="Pending" value="2" icon={<Clock />} />
-          <SummaryCard title="Approved" value="9" icon={<CheckCircle />} />
-          <SummaryCard title="Rejected" value="1" icon={<XCircle />} />
+          <SummaryCard
+            title="Total Requests"
+            value="12"
+            icon={<FileText />}
+            iconClass="bg-cyan-400/20 text-cyan-300"
+          />
+
+          <SummaryCard
+            title="Pending"
+            value="2"
+            icon={<Clock />}
+            iconClass="bg-yellow-400/20 text-yellow-300"
+          />
+
+          <SummaryCard
+            title="Approved"
+            value="9"
+            icon={<CheckCircle />}
+            iconClass="bg-green-400/20 text-green-300"
+          />
+
+          <SummaryCard
+            title="Rejected"
+            value="1"
+            icon={<XCircle />}
+            iconClass="bg-red-400/20 text-red-300"
+          />
         </div>
 
-        {/* ================= APPLY BUTTONS ================= */}
-     
-<div className={`grid ${student.student_type?.toLowerCase() === "hosteller" ? "grid-cols-2" : "grid-cols-1"} gap-8 mb-10`}>
-  {/* Gate Pass → Only for Hosteller */}
-  {student.student_type?.toLowerCase() === "hosteller" && (
-    <ApplyCard
-      title="Apply Gate Pass"
-      onClick={() => navigate("/student/apply-gatepass")}
-    />
-  )}
+        {/* APPLY BUTTONS */}
+        <div
+          className={`grid ${
+            student.student_type?.toLowerCase() === "hosteller"
+              ? "grid-cols-2"
+              : "grid-cols-1"
+          } gap-8 mb-10`}
+        >
+          {student.student_type?.toLowerCase() === "hosteller" && (
+            <ApplyCard
+              title="Apply Gate Pass"
+              onClick={() => navigate("/student/apply-gatepass")}
+            />
+          )}
 
-  {/* On-Duty → For all students */}
-  <ApplyCard
-    title="Apply On-Duty"
-    onClick={() => navigate("/student/apply-od")}
-  />
-</div>
+          <ApplyCard
+            title="Apply On-Duty"
+            onClick={() => navigate("/student/apply-od")}
+          />
+        </div>
 
-
-        {/* ================= MAIN CONTENT ================= */}
+        {/* MAIN CONTENT */}
         <div className="grid grid-cols-2 gap-8 flex-1">
 
           <div className={`${glass} p-6`}>
-            <h2 className="flex items-center gap-2 text-lg font-semibold mb-6">
-              <FileText className="text-cyan-400" />
+            <h2 className="flex items-center gap-2 text-xl font-bold text-[#53eafd] mb-6">
+              <FileText className="text-[#53eafd]" />
               Live Requests
             </h2>
 
@@ -162,8 +180,8 @@ const StudentDashboard = () => {
           </div>
 
           <div className={`${glass} p-6`}>
-            <h2 className="flex items-center gap-2 text-lg font-semibold mb-6">
-              <Bell className="text-cyan-400" />
+            <h2 className="flex items-center gap-2 text-xl font-bold text-[#53eafd] mb-6">
+              <Bell className="text-[#53eafd]" />
               Notifications
             </h2>
 
@@ -172,21 +190,20 @@ const StudentDashboard = () => {
           </div>
 
         </div>
-
       </main>
     </div>
   );
 };
 
-/* ================= COMPONENTS ================= */
+/* COMPONENTS */
 
-const SummaryCard = ({ title, value, icon }) => (
-  <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-xl p-6 flex items-center justify-between">
+const SummaryCard = ({ title, value, icon, iconClass }) => (
+  <div className="bg-black/40 backdrop-blur-2xl border border-white/25 rounded-2xl shadow-2xl p-6 flex items-center justify-between">
     <div>
-      <p className="text-sm text-gray-400">{title}</p>
-      <p className="text-3xl mt-1">{value}</p>
+      <p className="text-sm text-[#53eafd] tracking-wide">{title}</p>
+      <p className="text-4xl font-bold text-white mt-1">{value}</p>
     </div>
-    <div className="p-4 rounded-xl bg-white/10 text-cyan-400">
+    <div className={`p-4 rounded-xl ${iconClass}`}>
       {icon}
     </div>
   </div>
@@ -195,7 +212,7 @@ const SummaryCard = ({ title, value, icon }) => (
 const ApplyCard = ({ title, onClick }) => (
   <div
     onClick={onClick}
-    className="cursor-pointer bg-gradient-to-r from-cyan-400 to-blue-500 text-black rounded-2xl p-6 shadow-xl hover:scale-105 transition"
+    className="cursor-pointer bg-gradient-to-r from-cyan-300 to-blue-400 text-black rounded-2xl p-6 shadow-2xl hover:scale-[1.03] transition border border-black/20"
   >
     <h3 className="text-xl font-semibold">{title}</h3>
     <p className="text-sm mt-1 opacity-80">
@@ -205,16 +222,16 @@ const ApplyCard = ({ title, onClick }) => (
 );
 
 const RequestItem = ({ title, subtitle, status }) => (
-  <div className="bg-white/5 rounded-xl p-4 mb-4 flex justify-between items-center">
+  <div className="bg-black/30 rounded-xl p-4 mb-4 flex justify-between items-center">
     <div>
-      <p className="font-medium text-cyan-300">{title}</p>
-      <p className="text-sm text-gray-400">{subtitle}</p>
+      <p className="font-semibold text-cyan-200">{title}</p>
+      <p className="text-sm text-gray-300">{subtitle}</p>
     </div>
     <span
       className={
         status === "Approved"
-          ? "text-green-400"
-          : "text-yellow-400"
+          ? "text-green-400 font-semibold"
+          : "text-yellow-400 font-semibold"
       }
     >
       {status}
@@ -223,7 +240,7 @@ const RequestItem = ({ title, subtitle, status }) => (
 );
 
 const NotificationItem = ({ text }) => (
-  <div className="bg-white/5 rounded-xl p-4 mb-4 text-sm">
+  <div className="bg-black/30 rounded-xl p-4 mb-4 text-sm text-gray-200">
     {text}
   </div>
 );
