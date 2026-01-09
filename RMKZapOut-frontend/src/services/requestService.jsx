@@ -25,5 +25,5 @@ export const fetchStaffRequests = (staffId, role) => {
   return axios.get(`${API}/staff/${staffId}/${role}`);
 };
 
-export const updateRequestStatus = (requestId, role, action) =>
-  axios.put(`${API}/staff/request/${requestId}/status`, { role, action });
+export const updateRequestStatus = (requestId, role, action,rejectionReason ) =>
+  axios.put(`${API}/staff/request/${requestId}/status`, { role, action,rejectionReason  });

@@ -1,9 +1,27 @@
 import { useEffect, useState } from "react";
 import { Edit, Trash2, Save, X, FileText } from "lucide-react";
-import { fetchStudentRequests, cancelRequest, updateRequest } from "../../services/requestService.jsx";
+import {
+  fetchStudentRequests,
+  cancelRequest,
+  updateRequest,
+} from "../../services/requestService.jsx";
 
-const glass = "bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-xl";
+const glass =
+  "bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-xl";
+
 const FILTERS = ["All", "Gate Pass", "On-Duty"];
+
+const STATUS_LABEL = {
+  SUBMITTED: "Waiting for Counsellor",
+  COUNSELLOR_APPROVED: "Approved by Counsellor",
+  COORDINATOR_APPROVED: "Approved by Coordinator",
+  HOD_APPROVED: "Approved by HOD",
+  WARDEN_APPROVED: "Approved by Warden",
+  REJECTED: "Rejected",
+};
+
+const STAGES = ["COUNSELLOR", "COORDINATOR", "HOD", "WARDEN"];
+
 
 const StudentRequests = () => {
   const sessionUser = JSON.parse(localStorage.getItem("user"));
@@ -14,19 +32,12 @@ const StudentRequests = () => {
   const [editData, setEditData] = useState({});
   const [editFile, setEditFile] = useState(null);
 
-  const totalDays = (data) => {
-    if (!data.fromDate || !data.toDate) return "-";
-    const from = new Date(data.fromDate);
-    const to = new Date(data.toDate);
-    return Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
-  };
-
   const loadRequests = async () => {
     try {
       const res = await fetchStudentRequests(sessionUser.id);
       setRequests(res.data.requests || []);
     } catch (err) {
-      console.error("Fetch failed:", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -40,7 +51,9 @@ const StudentRequests = () => {
     activeFilter === "All"
       ? requests
       : requests.filter((r) =>
-          activeFilter === "Gate Pass" ? r.request_type === "GATE_PASS" : r.request_type === "ON_DUTY"
+          activeFilter === "Gate Pass"
+            ? r.request_type === "GATE_PASS"
+            : r.request_type === "ON_DUTY"
         );
 
   const handleEdit = (r) => {
@@ -54,10 +67,11 @@ const StudentRequests = () => {
         fromDate: r.od_from_date?.split("T")[0],
         toDate: r.od_to_date?.split("T")[0],
       });
-    } else if (r.request_type === "GATE_PASS") {
+    } else {
       setEditData({
         reason: r.reason,
         outTime: r.out_time,
+        inTime: r.in_time,
         fromDate: r.gp_from_date?.split("T")[0],
         toDate: r.gp_to_date?.split("T")[0],
       });
@@ -82,7 +96,6 @@ const StudentRequests = () => {
       loadRequests();
     } catch (err) {
       alert(err.response?.data?.message || "Update failed");
-      console.error(err);
     }
   };
 
@@ -92,8 +105,7 @@ const StudentRequests = () => {
       await cancelRequest(id);
       loadRequests();
     } catch (err) {
-      alert("Cancellation failed");
-      console.error(err);
+      alert(err.response?.data?.message || "Cancellation failed");
     }
   };
 
@@ -111,7 +123,9 @@ const StudentRequests = () => {
               key={f}
               onClick={() => setActiveFilter(f)}
               className={`px-6 py-3 rounded-2xl ${
-                activeFilter === f ? "bg-white/25" : "bg-white/10 text-[#00d3d1]"
+                activeFilter === f
+                  ? "bg-white/25"
+                  : "bg-white/10 text-[#00d3d1]"
               }`}
             >
               {f}
@@ -124,106 +138,36 @@ const StudentRequests = () => {
         {filteredRequests.map((r) => {
           const isEditing = editId === r.id;
 
-          const statusColors = {
-            SUBMITTED: "text-yellow-400",
-            COUNSELLOR_APPROVED: "text-blue-400",
-            COORDINATOR_APPROVED: "text-purple-400",
-            HOD_APPROVED: "text-green-400",
-            WARDEN_APPROVED: "text-teal-400",
-            REJECTED: "text-red-500",
-          };
-
-          const stages = ["COUNSELLOR_APPROVED", "COORDINATOR_APPROVED", "HOD_APPROVED", "WARDEN_APPROVED"];
-
           return (
             <div key={r.id} className={`${glass} p-6 mb-8`}>
               <div className="grid grid-cols-3 gap-6">
                 <Card label="Request Type" value={r.request_type} />
 
-                {r.request_type === "GATE_PASS" && (
+                {r.request_type === "ON_DUTY" && (
                   <>
-                    <EditableCard
-                      label="Reason"
-                      name="reason"
-                      value={isEditing ? editData.reason : r.reason}
-                      editable={isEditing}
-                      onChange={handleChange}
-                    />
-                    <EditableCard
-                      label="Out Time"
-                      name="outTime"
-                      value={isEditing ? editData.outTime : r.out_time}
-                      editable={isEditing}
-                      onChange={handleChange}
-                    />
-                    <EditableCard
-                      label="From Date"
-                      name="fromDate"
-                      value={isEditing ? editData.fromDate : r.gp_from_date?.split("T")[0]}
-                      editable={isEditing}
-                      onChange={handleChange}
-                    />
-                    <EditableCard
-                      label="To Date"
-                      name="toDate"
-                      value={isEditing ? editData.toDate : r.gp_to_date?.split("T")[0]}
-                      editable={isEditing}
-                      onChange={handleChange}
-                    />
-                    <Card label="Total Days" value={r.gp_total_days || totalDays(editData)} />
+                    <EditableCard label="Event Type" name="eventType" value={isEditing ? editData.eventType : r.event_type} editable={isEditing} onChange={handleChange} />
+                    <EditableCard label="Event Name" name="eventName" value={isEditing ? editData.eventName : r.event_name} editable={isEditing} onChange={handleChange} />
+                    <EditableCard label="College" name="college" value={isEditing ? editData.college : r.college} editable={isEditing} onChange={handleChange} />
+                    <EditableCard label="Location" name="location" value={isEditing ? editData.location : r.location} editable={isEditing} onChange={handleChange} />
+                    <EditableCard label="From Date" name="fromDate" value={isEditing ? editData.fromDate : r.od_from_date?.split("T")[0]} editable={isEditing} onChange={handleChange} />
+                    <EditableCard label="To Date" name="toDate" value={isEditing ? editData.toDate : r.od_to_date?.split("T")[0]} editable={isEditing} onChange={handleChange} />
+                    <Card label="Total Days" value={r.od_total_days} />
                   </>
                 )}
 
-                {r.request_type === "ON_DUTY" && (
+                {r.request_type === "GATE_PASS" && (
                   <>
-                    <EditableCard
-                      label="Event Type"
-                      name="eventType"
-                      value={isEditing ? editData.eventType : r.event_type}
-                      editable={isEditing}
-                      onChange={handleChange}
-                    />
-                    <EditableCard
-                      label="Event Name"
-                      name="eventName"
-                      value={isEditing ? editData.eventName : r.event_name}
-                      editable={isEditing}
-                      onChange={handleChange}
-                    />
-                    <EditableCard
-                      label="College"
-                      name="college"
-                      value={isEditing ? editData.college : r.college}
-                      editable={isEditing}
-                      onChange={handleChange}
-                    />
-                    <EditableCard
-                      label="Location"
-                      name="location"
-                      value={isEditing ? editData.location : r.location}
-                      editable={isEditing}
-                      onChange={handleChange}
-                    />
-                    <EditableCard
-                      label="From Date"
-                      name="fromDate"
-                      value={isEditing ? editData.fromDate : r.od_from_date?.split("T")[0]}
-                      editable={isEditing}
-                      onChange={handleChange}
-                    />
-                    <EditableCard
-                      label="To Date"
-                      name="toDate"
-                      value={isEditing ? editData.toDate : r.od_to_date?.split("T")[0]}
-                      editable={isEditing}
-                      onChange={handleChange}
-                    />
-                    <Card label="Total Days" value={r.od_total_days} />
+                    <EditableCard label="Reason" name="reason" value={isEditing ? editData.reason : r.reason} editable={isEditing} onChange={handleChange} />
+                    <EditableCard label="Out Time" name="outTime" value={isEditing ? editData.outTime : r.out_time} editable={isEditing} onChange={handleChange} />
+                    <EditableCard label="In Time" name="inTime" value={isEditing ? editData.inTime : r.in_time} editable={isEditing} onChange={handleChange} />
+                    <EditableCard label="From Date" name="fromDate" value={isEditing ? editData.fromDate : r.gp_from_date?.split("T")[0]} editable={isEditing} onChange={handleChange} />
+                    <EditableCard label="To Date" name="toDate" value={isEditing ? editData.toDate : r.gp_to_date?.split("T")[0]} editable={isEditing} onChange={handleChange} />
+                    <Card label="Total Days" value={r.gp_total_days} />
                   </>
                 )}
               </div>
 
-              {r.request_type === "ON_DUTY" && r.proof_file && !isEditing && (
+              {r.proof_file && !isEditing && (
                 <div className="flex gap-2 mt-4">
                   <FileText size={16} />
                   <a
@@ -237,57 +181,130 @@ const StudentRequests = () => {
                 </div>
               )}
 
+              {/* ACTIONS */}
               <div className="flex gap-4 mt-6">
-                {!isEditing && r.status === "SUBMITTED" && (
-                  <>
-                    <button onClick={() => handleEdit(r)} className="btn-yellow">
-                      <Edit size={16} /> Edit
-                    </button>
-                    <button onClick={() => handleCancelRequest(r.id)} className="btn-red">
-                      <Trash2 size={16} /> Cancel
-                    </button>
-                  </>
-                )}
+                {!isEditing &&
+                  r.status === "SUBMITTED" &&
+                  r.current_stage === "COUNSELLOR" && (
+                    <>
+                      <button onClick={() => handleEdit(r)} className="btn-yellow">
+                        <Edit size={16} /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleCancelRequest(r.id)}
+                        className="btn-red"
+                      >
+                        <Trash2 size={16} /> Cancel
+                      </button>
+                    </>
+                  )}
+
                 {isEditing && (
                   <>
                     <button onClick={() => handleSave(r.id)} className="btn-green">
                       <Save size={16} /> Save
                     </button>
-                    <button onClick={() => setEditId(null)} className="btn-gray">
+                    <button
+                      onClick={() => setEditId(null)}
+                      className="btn-gray"
+                    >
                       <X size={16} /> Cancel
                     </button>
                   </>
                 )}
               </div>
 
-              {/* Approval Status Track */}
-              <div className="mt-4 flex items-center gap-4">
-                {stages.map((stage, index) => {
-                  const stageDone =
-                    r.status === stage ||
-                    stages.indexOf(r.status) >= index; // all previous stages approved
+              {/* APPROVAL TRACK */}
+<div className="mt-6">
+  <div className="flex items-start">
+    {["SUBMITTED", ...STAGES].map((stage, index) => {
+      const stageOrder = ["SUBMITTED", ...STAGES];
+      const rejectedIndex = r.status === "REJECTED" ? stageOrder.indexOf(r.current_stage) : -1;
+      const currentIndex =
+        r.status === "SUBMITTED"
+          ? 0
+          : stageOrder.indexOf(r.current_stage);
 
-                  return (
-                    <div key={stage} className="flex items-center gap-2">
-                      <div
-                        className={`w-5 h-5 rounded-full border-2 ${
-                          stageDone ? "bg-green-400 border-green-400" : "border-white/30"
-                        }`}
-                      ></div>
-                      {index < stages.length - 1 && (
-                        <div className={`w-8 h-1 ${stageDone ? "bg-green-400" : "bg-white/30"}`}></div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              <p className="text-xs text-gray-400 mt-1">
-                Counsellor → Coordinator → HOD → Warden
+      let isCompleted = false;
+      let isCurrent = false;
+      let isRejected = false;
+
+      if (r.status === "REJECTED") {
+        if (index < rejectedIndex) isCompleted = true; // approved before rejection
+        else if (index === rejectedIndex) isRejected = true;
+      } else if (r.status === "SUBMITTED") {
+        isCompleted = index === 0;
+        isCurrent = index === 1;
+      } else {
+        isCompleted = index < currentIndex;
+        isCurrent = index === currentIndex;
+      }
+
+      return (
+        <div key={stage} className="flex flex-1 items-center">
+          <div className="flex flex-col items-center">
+            <div
+              className={`w-5 h-5 rounded-full border-2 ${
+                isRejected
+                  ? "bg-red-500 border-red-500"
+                  : isCompleted
+                  ? "bg-green-400 border-green-400"
+                  : isCurrent
+                  ? "border-[#00d3d1]"
+                  : "border-white/30"
+              }`}
+            />
+            <p
+              className={`mt-2 text-xs font-semibold text-center ${
+                isRejected
+                  ? "text-red-400"
+                  : isCompleted
+                  ? "text-green-400"
+                  : isCurrent
+                  ? "text-[#00d3d1]"
+                  : "text-gray-400"
+              }`}
+            >
+              {stage === "SUBMITTED" ? "Submitted" : stage}
+            </p>
+          </div>
+
+          {index < STAGES.length && (
+            <div
+              className={`flex-1 h-1 mx-2 mt-2 ${
+                isCompleted ? "bg-green-400" : "bg-white/30"
+              }`}
+            />
+          )}
+        </div>
+      );
+    })}
+  </div>
+
+  <p className="mt-3 text-xs text-gray-400 text-center">
+    Submitted → Counsellor → Coordinator → HOD → Warden
+  </p>
+</div>
+
+
+
+
+
+
+              <p className="mt-4 font-semibold">
+                Status: {STATUS_LABEL[r.status]}
               </p>
 
-              <p className={`mt-4 font-semibold ${statusColors[r.status] || "text-white"}`}>
-                Status: {r.status.replaceAll("_", " ")}
-              </p>
+              {r.status === "REJECTED" && (
+                <div className="mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30">
+                  <p className="text-red-400 font-semibold">
+                    Rejected by: {r.rejected_by}
+                  </p>
+                  <p className="text-gray-300">
+                    Reason: {r.rejection_reason || "No reason provided"}
+                  </p>
+                </div>
+              )}
             </div>
           );
         })}
@@ -304,10 +321,9 @@ const Card = ({ label, value }) => (
 );
 
 const EditableCard = ({ label, name, value, editable, onChange }) => {
-  // Determine input type
-  let inputType = "text";
-  if (name.toLowerCase().includes("date")) inputType = "date";
-  else if (name.toLowerCase().includes("time")) inputType = "time";
+  let type = "text";
+  if (name.toLowerCase().includes("date")) type = "date";
+  if (name.toLowerCase().includes("time")) type = "time";
 
   return (
     <div className="bg-white/10 rounded-xl p-4">
@@ -315,9 +331,9 @@ const EditableCard = ({ label, name, value, editable, onChange }) => {
       {editable ? (
         <input
           name={name}
+          type={type}
           value={value || ""}
           onChange={onChange}
-          type={inputType} // <-- set type dynamically
           className="w-full bg-transparent border border-white/30 rounded px-2 py-1"
         />
       ) : (
