@@ -10,7 +10,7 @@ export default function NeedHelp() {
   return (
     <div className="min-h-screen p-6 text-white bg-gradient-to-br from-[#0f172a] to-[#020617]">
 
-      <h1 className="text-3xl font-semibold mb-6">Need Help</h1>
+      <h1 className="text-3xl text-cyan-300 font-semibold mb-6">Need Help</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 

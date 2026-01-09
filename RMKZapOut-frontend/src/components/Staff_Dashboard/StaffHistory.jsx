@@ -58,8 +58,8 @@ const StaffHistory = () => {
     <div className="p-6 text-white">
       {/* HEADER */}
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold">Request History</h1>
-        <p className="text-sm text-cyan-300">
+        <h1 className="text-2xl text-green-500 font-semibold">Request History</h1>
+        <p className="text-sm text-green-300">
           Complete record of student requests
         </p>
       </div>

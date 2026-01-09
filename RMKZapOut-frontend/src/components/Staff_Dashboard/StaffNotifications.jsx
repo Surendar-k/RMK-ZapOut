@@ -55,8 +55,8 @@ const affNotifications = () => {
   return (
     <div className="min-h-screen text-white p-6 bg-gradient-to-br from-[#020617] via-[#041b32] to-[#020617]">
 
-      <h1 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-        <Bell className="text-[#00d3d1]" />
+      <h1 className="text-2xl text-green-500 font-semibold mb-6 flex items-center gap-2">
+        <Bell className="text-[#53cf57]" />
         Notifications
       </h1>
 

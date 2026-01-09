@@ -107,7 +107,7 @@ export default function StudentHistory() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-semibold text-white">Request History</h1>
+      <h1 className="text-2xl text-cyan-300 font-semibold">Request History</h1>
 
       <div className="grid grid-cols-6 gap-4">
         <StatCard title="Total Gate Pass" value={total("Gate Pass")} />

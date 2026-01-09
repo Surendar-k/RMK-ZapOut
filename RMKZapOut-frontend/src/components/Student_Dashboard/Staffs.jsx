@@ -27,7 +27,7 @@ const Staffs = () => {
       {/* HEADER */}
       <div className="flex items-center gap-3">
         <Users className="w-7 h-7 text-[#00d3d1]" />
-        <h1 className="text-2xl font-semibold text-white">
+        <h1 className="text-2xl font-semibold text-cyan-300">
           Staffs
         </h1>
       </div>
