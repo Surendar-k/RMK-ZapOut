@@ -78,7 +78,7 @@ const handleSave = async () => {
 
   return (
     <div className="p-6 text-white">
-      <h1 className="text-2xl font-semibold mb-6">Staff Profile</h1>
+      <h1 className="text-2xl text-green-500 font-semibold mb-6">Staff Profile</h1>
 
       {/* PROFILE CARD */}
       <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6 mb-6 flex gap-6 items-center">
