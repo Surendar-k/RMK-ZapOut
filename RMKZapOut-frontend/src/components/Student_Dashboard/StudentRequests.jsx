@@ -183,9 +183,10 @@ const StudentRequests = () => {
 
               {/* ACTIONS */}
               <div className="flex gap-4 mt-6">
-                {!isEditing &&
-                  r.status === "SUBMITTED" &&
-                  r.current_stage === "COUNSELLOR" && (
+               {!isEditing &&
+  (r.status === "SUBMITTED" || r.status === "REJECTED") &&
+  r.current_stage === "COUNSELLOR" && (
+
                     <>
                       <button onClick={() => handleEdit(r)} className="btn-yellow">
                         <Edit size={16} /> Edit

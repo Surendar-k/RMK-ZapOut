@@ -314,6 +314,16 @@ else if (!isRejected && i <= currentIndex) {
 
               {/* STATUS */}
               <p className="mt-3 font-semibold">Status: {getStatusText(r)}</p>
+{r.status === "REJECTED" && (
+                <div className="mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30">
+                  <p className="text-red-400 font-semibold">
+                    Rejected by: {r.rejected_by}
+                  </p>
+                  <p className="text-gray-300">
+                    Reason: {r.rejection_reason || "No reason provided"}
+                  </p>
+                </div>
+              )}
 
               {/* ACTION BUTTONS */}
               {r.actionable && (

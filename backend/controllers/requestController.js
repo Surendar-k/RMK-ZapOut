@@ -116,10 +116,8 @@ export const updateRequest = async (req, res) => {
       return res.status(404).json({ message: "Request not found" });
     }
 
-    if (rows[0].status !== "SUBMITTED") {
-      return res
-        .status(403)
-        .json({ message: "Cannot update after approval/rejection" });
+    if (!["SUBMITTED", "REJECTED"].includes(rows[0].status)) {
+      return res.status(403).json({ message: "Cannot update after approval" });
     }
 
     if (rows[0].request_type === "ON_DUTY") {
@@ -252,11 +250,10 @@ export const getStaffRequests = async (req, res) => {
         ORDER BY r.created_at DESC
       `;
       params = [staffId];
-    }
+    } else if (role === "COORDINATOR") {
 
     /* ================= COORDINATOR ================= */
-else if (role === "COORDINATOR") {
-  query = `
+      query = `
     ${baseSelect}
     WHERE
       (
@@ -295,12 +292,10 @@ else if (role === "COORDINATOR") {
       )
     ORDER BY r.created_at DESC
   `;
-  params = [staffId, staffId, staffId];
-}
-
+      params = [staffId, staffId, staffId];
+    } else if (role === "HOD") {
 
     /* ================= HOD ================= */
-    else if (role === "HOD") {
       query = `
         ${baseSelect}
         JOIN hods h ON h.user_id = ?
@@ -309,10 +304,9 @@ else if (role === "COORDINATOR") {
         ORDER BY r.created_at DESC
       `;
       params = [staffId];
-    }
+    } else if (role === "WARDEN") {
 
     /* ================= WARDEN ================= */
-    else if (role === "WARDEN") {
       query = `
         ${baseSelect}
         WHERE r.current_stage = 'WARDEN'
@@ -404,49 +398,53 @@ export const updateRequestStatus = async (req, res) => {
       if (role === "COUNSELLOR" && reqRow.current_stage === "COUNSELLOR") {
         nextStage = "COORDINATOR";
         nextStatus = "COUNSELLOR_APPROVED";
-      }
+      } else if (role === "COORDINATOR") {
 
       /* ---------------- COORDINATOR ---------------- */
-      else if (role === "COORDINATOR") {
         if (reqRow.current_stage === "COORDINATOR") {
           // Coordinator approving at their own stage
           nextStage = "HOD";
           nextStatus = "COORDINATOR_APPROVED";
-        } 
-        else if (reqRow.current_stage === "COUNSELLOR") {
+        } else if (reqRow.current_stage === "COUNSELLOR") {
           // Coordinator approving a counsellor-stage request
           const [[coord]] = await db.query(
             `SELECT id, year, department_id FROM coordinators WHERE user_id=?`,
             [staffId]
           );
 
-          if (!coord) return res.status(403).json({ message: "Coordinator info not found" });
+          if (!coord)
+            return res
+              .status(403)
+              .json({ message: "Coordinator info not found" });
 
           // CASE 1: Coordinator year matches student → skip counsellor approval
           if (coord.year === reqRow.student_year) {
             nextStage = "HOD";
             nextStatus = "COORDINATOR_APPROVED";
-          } 
+          }
           // CASE 2: Coordinator is student’s assigned counsellor → count as COUNSELLOR approval
-          else if (coord.id === reqRow.counsellor_id && coord.year !== reqRow.student_year) {
+          else if (
+            coord.id === reqRow.counsellor_id &&
+            coord.year !== reqRow.student_year
+          ) {
             nextStage = "COORDINATOR";
             nextStatus = "COUNSELLOR_APPROVED";
-          } 
+          }
           // CASE 3: Coordinator neither matches year nor assigned counsellor → cannot approve
           else {
-            return res.status(403).json({ message: "Cannot approve this request" });
+            return res
+              .status(403)
+              .json({ message: "Cannot approve this request" });
           }
         }
-      }
+      } else if (role === "HOD" && reqRow.current_stage === "HOD") {
 
       /* ---------------- HOD ---------------- */
-      else if (role === "HOD" && reqRow.current_stage === "HOD") {
         nextStage = "WARDEN";
         nextStatus = "HOD_APPROVED";
-      }
+      } else if (role === "WARDEN" && reqRow.current_stage === "WARDEN") {
 
       /* ---------------- WARDEN ---------------- */
-      else if (role === "WARDEN" && reqRow.current_stage === "WARDEN") {
         nextStage = "COMPLETED";
         nextStatus = "WARDEN_APPROVED";
       }
@@ -473,6 +471,3 @@ export const updateRequestStatus = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
-
-
