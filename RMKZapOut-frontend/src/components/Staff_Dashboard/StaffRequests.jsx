@@ -275,8 +275,9 @@ let lineColor = "bg-white/30";
 if (STAGES[i + 1] === "COUNSELLOR") {
   lineColor = "bg-green-400";
 }
+
 // ✅ Approved stages
-else if (!isRejected && i <= currentIndex) {
+else if (!isRejected && i <= currentIndex-1) {
   lineColor = "bg-green-400";
 }
 
