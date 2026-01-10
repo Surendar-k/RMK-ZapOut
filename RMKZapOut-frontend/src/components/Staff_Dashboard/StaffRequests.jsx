@@ -24,7 +24,7 @@ const STATUS_LABEL = {
   REJECTED: "Rejected",
 };
 
-const STAGES = ["COUNSELLOR", "COORDINATOR", "HOD", "WARDEN", "COMPLETED"];
+const STAGES = ["SUBMITTED", "COUNSELLOR", "COORDINATOR", "HOD", "WARDEN"];
 
 const StaffRequests = () => {
   const user = JSON.parse(localStorage.getItem("user"));
@@ -137,8 +137,8 @@ const getStatusText = (r) => {
       return "Waiting for HOD";
     case "WARDEN":
       return "Waiting for Warden";
-    case "COMPLETED":
-      return STATUS_LABEL[r.status] || "Completed";
+    case "SUBMITTED":
+      return STATUS_LABEL[r.status] || "Submitted";
     default:
       return STATUS_LABEL[r.status] || "Unknown";
   }
@@ -247,22 +247,70 @@ const getStatusText = (r) => {
 
 
               {/* TRACK PROGRESS */}
-              <div className="mt-4 flex">
-                {STAGES.map((stage, i) => (
-                  <div key={stage} className="flex flex-1 items-center">
-                    <div
-                      className={`w-4 h-4 rounded-full ${
-                        i < currentIndex
-                          ? "bg-green-400"
-                          : i === currentIndex
-                          ? "bg-cyan-400"
-                          : "bg-white/30"
-                      }`}
-                    />
-                    {i < STAGES.length - 1 && <div className="flex-1 h-1 bg-white/30 mx-1" />}
-                  </div>
-                ))}
-              </div>
+            <div className="mt-6 flex items-center justify-between">
+  {STAGES.map((stage, i) => {
+    const isRejected = r.status === "REJECTED";
+    const isCurrent = i === currentIndex;
+
+    /* ---------- DOT COLOR ---------- */
+  let dotColor = "bg-white/30";
+
+// ✅ SUBMITTED is always green
+if (stage === "SUBMITTED") {
+  dotColor = "bg-green-400";
+}
+else if (isRejected) {
+  if (isCurrent) dotColor = "bg-red-500";
+}
+else {
+  if (i < currentIndex) dotColor = "bg-green-400";
+  else if (isCurrent) dotColor = "bg-cyan-400";
+}
+
+
+    /* ---------- LINE COLOR ---------- */
+let lineColor = "bg-white/30";
+
+// ✅ Line after SUBMITTED is always green
+if (STAGES[i + 1] === "COUNSELLOR") {
+  lineColor = "bg-green-400";
+}
+// ✅ Approved stages
+else if (!isRejected && i <= currentIndex) {
+  lineColor = "bg-green-400";
+}
+
+    return (
+      <div key={stage} className="flex items-center flex-1">
+        {/* DOT + LABEL */}
+        <div className="flex flex-col items-center">
+          {/* DOT */}
+          <div className={`w-4 h-4 rounded-full ${dotColor}`} />
+
+          {/* LABEL BELOW DOT */}
+        <span className="text-xs mt-2 text-white/70">
+  {stage === "SUBMITTED"
+    ? "Submitted"
+    : stage === "COUNSELLOR"
+    ? "Counsellor"
+    : stage === "COORDINATOR"
+    ? "Coordinator"
+    : stage === "HOD"
+    ? "HOD"
+    : "Warden"}
+</span>
+
+        </div>
+
+        {/* CONNECTING LINE */}
+        {i < STAGES.length - 1 && (
+          <div className={`flex-1 h-1 mx-2 ${lineColor}`} />
+        )}
+      </div>
+    );
+  })}
+</div>
+
 
               {/* STATUS */}
               <p className="mt-3 font-semibold">Status: {getStatusText(r)}</p>
