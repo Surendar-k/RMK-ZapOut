@@ -180,20 +180,71 @@ const getStatusText = (r) => {
           return (
             <div key={r.id} className={`${glass} p-6 mb-6`}>
               <h2 className="font-semibold flex items-center gap-2">
-                <User size={16} /> {r.student_name}
-              </h2>
-              <p className="text-sm text-white/70">
-                <IdCard size={14} className="inline" /> {r.register_number}
-              </p>
+  <User size={16} /> {r.student_name}
+</h2>
 
-              <p className="mt-2">
-                <FileText size={14} className="inline" /> {r.request_type.replace("_", "-")}
-              </p>
+<p className="text-sm text-white/70">
+  <IdCard size={14} className="inline" /> {r.register_number}
+</p>
 
-              <p className="text-xs text-white/60 mt-2">
-                <Calendar size={14} className="inline" /> {formatDate(r.od_from_date || r.gp_from_date)} →{" "}
-                {formatDate(r.od_to_date || r.gp_to_date)}
-              </p>
+<p className="mt-2 font-medium">
+  <FileText size={14} className="inline" />{" "}
+  {r.request_type.replace("_", "-")}
+</p>
+
+{/* ================= ON DUTY DETAILS ================= */}
+{r.request_type === "ON_DUTY" && (
+  <div className="mt-3 text-sm text-white/80 space-y-1">
+    <p>
+      <strong>Event Type:</strong> {r.event_type}
+    </p>
+    <p>
+      <strong>Event Name:</strong> {r.event_name}
+    </p>
+    <p>
+      <strong>College:</strong> {r.college}
+    </p>
+    <p>
+      <strong>Location:</strong> {r.location}
+    </p>
+
+    <p className="text-xs text-white/60 mt-2">
+      <Calendar size={14} className="inline" />{" "}
+      {formatDate(r.od_from_date)} → {formatDate(r.od_to_date)}
+    </p>
+
+    <p>
+      <strong>Total Days:</strong> {r.total_days}
+    </p>
+  </div>
+)}
+
+{/* ================= GATE PASS DETAILS ================= */}
+{r.request_type === "GATE_PASS" && (
+  <div className="mt-3 text-sm text-white/80 space-y-1">
+    <p>
+      <strong>Reason:</strong> {r.reason}
+    </p>
+
+    <p>
+      <strong>Out Time:</strong> {r.out_time || "N/A"}
+    </p>
+
+    <p>
+      <strong>In Time:</strong> {r.in_time || "N/A"}
+    </p>
+
+    <p className="text-xs text-white/60 mt-2">
+      <Calendar size={14} className="inline" />{" "}
+      {formatDate(r.gp_from_date)} → {formatDate(r.gp_to_date)}
+    </p>
+
+    <p>
+      <strong>Total Days:</strong> {r.total_days}
+    </p>
+  </div>
+)}
+
 
               {/* TRACK PROGRESS */}
               <div className="mt-4 flex">
