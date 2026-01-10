@@ -190,8 +190,8 @@ export const updateRequest = async (req, res) => {
 /* =====================================================
    STAFF SIDE
 ===================================================== */
-
 /* ================= FETCH STAFF REQUESTS ================= */
+
 export const getStaffRequests = async (req, res) => {
   const { staffId, role } = req.params;
 
@@ -200,135 +200,279 @@ export const getStaffRequests = async (req, res) => {
   }
 
   try {
+    const baseSelect = `
+      SELECT
+        r.id,
+        r.request_type,
+        r.status,
+        r.current_stage,
+        r.rejected_by,
+        r.rejection_reason,
+        r.created_at,
+
+        u.username AS student_name,
+        u.register_number,
+
+        s.id AS student_id,
+        s.department_id,
+        s.year_of_study,
+
+        cs.user_id AS counsellor_user_id,
+
+        od.event_type,
+        od.event_name,
+        od.college,
+        od.location,
+        od.from_date AS od_from_date,
+        od.to_date AS od_to_date,
+        od.total_days AS od_total_days,
+
+        gp.reason,
+        gp.from_date AS gp_from_date,
+        gp.to_date AS gp_to_date,
+        gp.total_days AS gp_total_days
+
+      FROM requests r
+      JOIN students s ON r.student_id = s.id
+      JOIN users u ON s.user_id = u.id
+      LEFT JOIN counsellors cs ON cs.id = s.counsellor_id
+      LEFT JOIN on_duty_details od ON od.request_id = r.id
+      LEFT JOIN gate_pass_details gp ON gp.request_id = r.id
+    `;
+
     let query = "";
-    let params = [staffId];
+    let params = [];
 
- const baseSelect = `
-  SELECT
-    r.id,
-    r.request_type,
-    r.status,
-    r.current_stage,
-    r.rejected_by,
-    r.rejection_reason,
-    r.created_at,
-
-    u.username AS student_name,
-    u.register_number,
-
-    od.event_type,
-    od.event_name,
-    od.college,
-    od.location,
-    od.from_date AS od_from_date,
-    od.to_date AS od_to_date,
-    od.total_days AS od_total_days,
-
-    gp.reason,
-    gp.from_date AS gp_from_date,
-    gp.to_date AS gp_to_date,
-    gp.total_days AS gp_total_days
-  FROM requests r
-  JOIN students s ON r.student_id = s.id
-  JOIN users u ON s.user_id = u.id
-  LEFT JOIN on_duty_details od ON od.request_id = r.id
-  LEFT JOIN gate_pass_details gp ON gp.request_id = r.id
-`;
-
-
+    /* ================= COUNSELLOR ================= */
     if (role === "COUNSELLOR") {
       query = `
         ${baseSelect}
-        JOIN counsellors c ON c.user_id = ?
-        WHERE s.counsellor_id = c.id
-          AND r.current_stage = 'COUNSELLOR'
+        WHERE r.current_stage = 'COUNSELLOR'
+          AND cs.user_id = ?
         ORDER BY r.created_at DESC
       `;
+      params = [staffId];
     }
 
-    else if (role === "COORDINATOR") {
-      query = `
-        ${baseSelect}
-        JOIN coordinators c ON c.user_id = ?
-        WHERE r.current_stage = 'COORDINATOR'
-          AND s.department_id = c.department_id
-          AND s.year_of_study = c.year
-        ORDER BY r.created_at DESC
-      `;
-    }
+    /* ================= COORDINATOR ================= */
+else if (role === "COORDINATOR") {
+  query = `
+    ${baseSelect}
+    WHERE
+      (
+        -- Coordinator-level approval
+        r.current_stage = 'COORDINATOR'
+        AND EXISTS (
+          SELECT 1
+          FROM coordinators c
+          WHERE c.user_id = ?
+            AND c.department_id = s.department_id
+            AND c.year = s.year_of_study
+        )
+      )
+      OR
+      (
+        -- Counsellor-level stage visible to coordinator IF student year matches coordinator year
+        r.current_stage = 'COUNSELLOR'
+        AND EXISTS (
+          SELECT 1
+          FROM coordinators c
+          WHERE c.user_id = ?
+            AND c.year = s.year_of_study
+            AND c.id=s.counsellor_id
+        )
+      )
+      OR
+      (
+        -- Counsellor-stage requests visible IF student.counsellor_id matches coordinator.id
+        r.current_stage = 'COUNSELLOR'
+        AND EXISTS (
+          SELECT 1
+          FROM coordinators c
+          WHERE c.user_id = ?
+            AND c.id = s.counsellor_id
+        )
+      )
+    ORDER BY r.created_at DESC
+  `;
+  params = [staffId, staffId, staffId];
+}
 
+
+    /* ================= HOD ================= */
     else if (role === "HOD") {
       query = `
         ${baseSelect}
         JOIN hods h ON h.user_id = ?
         WHERE r.current_stage = 'HOD'
-          AND s.department_id = h.department_id
+          AND h.department_id = s.department_id
         ORDER BY r.created_at DESC
       `;
+      params = [staffId];
     }
 
-    else {
+    /* ================= WARDEN ================= */
+    else if (role === "WARDEN") {
+      query = `
+        ${baseSelect}
+        WHERE r.current_stage = 'WARDEN'
+        ORDER BY r.created_at DESC
+      `;
+    } else {
       return res.status(400).json({ message: "Invalid role" });
     }
 
     const [rows] = await db.query(query, params);
-    res.json({ requests: rows });
+
+    /* ================= ACTIONABLE FLAG ================= */
+    const requests = rows.map((r) => {
+      let actionable = false;
+
+      if (role === "COUNSELLOR" && r.current_stage === "COUNSELLOR") {
+        actionable = true;
+      }
+
+      if (role === "COORDINATOR") {
+        if (r.current_stage === "COORDINATOR") actionable = true;
+
+        if (
+          r.current_stage === "COUNSELLOR" &&
+          r.counsellor_user_id == staffId
+        ) {
+          actionable = true; // counsellor-level approval
+        }
+      }
+
+      if (role === "HOD" && r.current_stage === "HOD") actionable = true;
+      if (role === "WARDEN" && r.current_stage === "WARDEN") actionable = true;
+
+      return { ...r, actionable };
+    });
+
+    res.json({ requests });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
+/* ================= UPDATE REQUEST STATUS (APPROVE/REJECT) ================= */
 
-/* ================= UPDATE REQUEST STATUS ================= */
 export const updateRequestStatus = async (req, res) => {
   const { requestId } = req.params;
-  const { role, action, rejectionReason } = req.body;
+  const { role, action, staffId, rejectionReason } = req.body;
 
   try {
-    if (action === "REJECT") {
-      // Update DB
-      const [result] = await db.query(
-        `UPDATE requests SET
-          status = 'REJECTED',
-          rejected_by = ?,
-          rejection_reason = ?
-        WHERE id = ?`,
-        [role, rejectionReason || null, requestId]
-      );
+    // Fetch current request info including student and counsellor
+    const [[reqRow]] = await db.query(
+      `SELECT 
+         r.current_stage, 
+         s.year_of_study AS student_year,
+         s.counsellor_id,
+         cs.user_id AS counsellor_user_id,
+         s.department_id
+       FROM requests r
+       JOIN students s ON r.student_id = s.id
+       LEFT JOIN counsellors cs ON cs.id = s.counsellor_id
+       WHERE r.id = ?`,
+      [requestId]
+    );
 
-      // Fetch updated row
-      const [updatedRows] = await db.query(
-        `SELECT status, rejected_by, rejection_reason, current_stage FROM requests WHERE id = ?`,
-        [requestId]
-      );
+    if (!reqRow) return res.status(404).json({ message: "Request not found" });
 
-      return res.json(updatedRows[0]); // Send full updated row
-    }
-
-    // Approval logic...
     let nextStage = null;
     let nextStatus = null;
 
-    if (role === "COUNSELLOR") {
-      nextStage = "COORDINATOR";
-      nextStatus = "COUNSELLOR_APPROVED";
-    } else if (role === "COORDINATOR") {
-      nextStage = "HOD";
-      nextStatus = "COORDINATOR_APPROVED";
-    } else if (role === "HOD") {
-      nextStage = "WARDEN";
-      nextStatus = "HOD_APPROVED";
+    /* ================= REJECT ================= */
+    if (action === "REJECT") {
+      await db.query(
+        `UPDATE requests
+         SET status='REJECTED',
+             rejected_by=?,
+             rejection_reason=?,
+             current_stage='COUNSELLOR'
+         WHERE id=?`,
+        [role, rejectionReason, requestId]
+      );
+
+      return res.json({ message: "Rejected successfully" });
     }
 
-    await db.query(
-      `UPDATE requests SET status = ?, current_stage = ? WHERE id = ?`,
-      [nextStatus, nextStage, requestId]
-    );
+    /* ================= APPROVE ================= */
+    if (action === "APPROVE") {
+      /* ---------------- COUNSELLOR ---------------- */
+      if (role === "COUNSELLOR" && reqRow.current_stage === "COUNSELLOR") {
+        nextStage = "COORDINATOR";
+        nextStatus = "COUNSELLOR_APPROVED";
+      }
 
-    res.json({ status: nextStatus, current_stage: nextStage });
+      /* ---------------- COORDINATOR ---------------- */
+      else if (role === "COORDINATOR") {
+        if (reqRow.current_stage === "COORDINATOR") {
+          // Coordinator approving at their own stage
+          nextStage = "HOD";
+          nextStatus = "COORDINATOR_APPROVED";
+        } 
+        else if (reqRow.current_stage === "COUNSELLOR") {
+          // Coordinator approving a counsellor-stage request
+          const [[coord]] = await db.query(
+            `SELECT id, year, department_id FROM coordinators WHERE user_id=?`,
+            [staffId]
+          );
+
+          if (!coord) return res.status(403).json({ message: "Coordinator info not found" });
+
+          // CASE 1: Coordinator year matches student → skip counsellor approval
+          if (coord.year === reqRow.student_year) {
+            nextStage = "HOD";
+            nextStatus = "COORDINATOR_APPROVED";
+          } 
+          // CASE 2: Coordinator is student’s assigned counsellor → count as COUNSELLOR approval
+          else if (coord.id === reqRow.counsellor_id && coord.year !== reqRow.student_year) {
+            nextStage = "COORDINATOR";
+            nextStatus = "COUNSELLOR_APPROVED";
+          } 
+          // CASE 3: Coordinator neither matches year nor assigned counsellor → cannot approve
+          else {
+            return res.status(403).json({ message: "Cannot approve this request" });
+          }
+        }
+      }
+
+      /* ---------------- HOD ---------------- */
+      else if (role === "HOD" && reqRow.current_stage === "HOD") {
+        nextStage = "WARDEN";
+        nextStatus = "HOD_APPROVED";
+      }
+
+      /* ---------------- WARDEN ---------------- */
+      else if (role === "WARDEN" && reqRow.current_stage === "WARDEN") {
+        nextStage = "COMPLETED";
+        nextStatus = "WARDEN_APPROVED";
+      }
+
+      /* ---------------- INVALID ACTION ---------------- */
+      if (!nextStage || !nextStatus) {
+        return res.status(403).json({ message: "Invalid approval action" });
+      }
+
+      await db.query(
+        `UPDATE requests
+         SET status=?,
+             current_stage=?
+         WHERE id=?`,
+        [nextStatus, nextStage, requestId]
+      );
+
+      return res.json({ message: "Approved successfully" });
+    }
+
+    res.status(400).json({ message: "Invalid action" });
   } catch (err) {
-    console.error(err);
+    console.error("updateRequestStatus:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
+

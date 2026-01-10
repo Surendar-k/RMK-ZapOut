@@ -2,6 +2,7 @@ import axios from "axios";
 
 const API = "http://localhost:5000/api/requests";
 
+/* ================= STUDENT ================= */
 export const fetchStudentRequests = (userId) =>
   axios.get(`${API}/student/${userId}`);
 
@@ -13,17 +14,24 @@ export const updateRequest = (requestId, data) =>
     headers: { "Content-Type": "multipart/form-data" },
   });
 
-
-  // ================= STAFF APIS =================
-
+/* ================= STAFF ================= */
 export const fetchStaffRequests = (staffId, role) => {
   if (!staffId || !role) {
-    console.warn("Blocked API call: staffId/role missing");
     return Promise.resolve({ data: { requests: [] } });
   }
-
   return axios.get(`${API}/staff/${staffId}/${role}`);
 };
 
-export const updateRequestStatus = (requestId, role, action,rejectionReason ) =>
-  axios.put(`${API}/staff/request/${requestId}/status`, { role, action,rejectionReason  });
+export const updateRequestStatus = (
+  requestId,
+  role,
+  action,
+  staffId,
+  rejectionReason = null
+) =>
+  axios.put(`${API}/staff/request/${requestId}/status`, {
+    role,
+    action,
+    staffId,
+    rejectionReason,
+  });
