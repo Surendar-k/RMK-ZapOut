@@ -394,13 +394,14 @@ const AdminStaffs = () => {
                 }
                 className="w-full px-3 py-2 bg-white/10 rounded text-white"
               >
-                <option value="" disabled>
+<option value="" disabled className="bg-[#020617] text-white">
                   Select role
                 </option>
-                <option value="COUNSELLOR">Counsellor</option>
-                <option value="COORDINATOR">Coordinator</option>
-                <option value="HOD">HOD</option>
-                <option value="WARDEN">Warden</option>
+                <option value="COUNSELLOR" className="bg-[#020617] text-white">Counsellor</option>
+<option value="COORDINATOR" className="bg-[#020617] text-white">Coordinator</option>
+<option value="HOD" className="bg-[#020617] text-white">HOD</option>
+<option value="WARDEN" className="bg-[#020617] text-white">Warden</option>
+
               </select>
 
               {/* Academic Type */}
@@ -419,12 +420,14 @@ const AdminStaffs = () => {
                 }}
                 className="w-full px-3 py-2 bg-white/10 rounded text-white"
               >
-                <option value="" disabled>
+<option value="" disabled className="bg-[#020617] text-white">
                   Select academic type
                 </option>
                 {ACADEMIC_TYPES.map((t) => (
                   <option
                     key={t}
+                      className="bg-[#020617] text-white"
+
                     disabled={
                       t === "BASE_DEPT" &&
                       ["COORDINATOR", "HOD"].includes(form.role) &&
@@ -447,11 +450,11 @@ const AdminStaffs = () => {
                   }
                   className="w-full px-3 py-2 bg-white/10 rounded text-white"
                 >
-                  <option value="" disabled>
+<option value="" disabled className="bg-[#020617] text-white">
                     Select department
                   </option>
                   {departments.map((d) => (
-                    <option key={d.id} value={d.name}>
+<option key={d.id} value={d.name} className="bg-[#020617] text-white">
                       {d.display_name}
                     </option>
                   ))}
@@ -468,13 +471,14 @@ const AdminStaffs = () => {
                     }
                     className="w-full px-3 py-2 bg-white/10 rounded text-white"
                   >
-                    <option value="" disabled>
+<option value="" disabled className="bg-[#020617] text-white">
                       Select year
                     </option>
-                    <option value={1}>1st Year</option>
-                    <option value={2}>2nd Year</option>
-                    <option value={3}>3rd Year</option>
-                    <option value={4}>4th Year</option>
+                    <option value={1} className="bg-[#020617] text-white">1st Year</option>
+<option value={2} className="bg-[#020617] text-white">2nd Year</option>
+<option value={3} className="bg-[#020617] text-white">3rd Year</option>
+<option value={4} className="bg-[#020617] text-white">4th Year</option>
+
                   </select>
                 )}
             </div>

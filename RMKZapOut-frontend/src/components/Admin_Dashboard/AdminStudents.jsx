@@ -346,9 +346,11 @@ const Select = ({ label, options, ...props }) => (
       {...props}
       className="w-full mt-1 px-4 py-2 rounded-lg bg-white/10 text-white outline-none"
     >
-      <option value="">Select {label}</option>
+<option value="" className="bg-[#020617] text-white">
+  Select {label}
+</option>
       {options.map((opt) => (
-        <option key={opt.value} value={opt.value} className="text-black bg-white">
+<option key={opt.value} value={opt.value} className="bg-[#020617] text-white">
           {opt.label}
         </option>
       ))}
