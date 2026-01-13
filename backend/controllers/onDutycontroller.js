@@ -1,4 +1,6 @@
 import db from "../config/db.js";
+import { getIO } from "../config/socket.js";
+
 import { sendNotification } from "./notifications/staffNotificationController.js";
 /* ================== STUDENT PROFILE ================== working fine */
 export const getStudentProfile = async (req, res) => {
@@ -119,6 +121,8 @@ export const applyOnDuty = async (req, res) => {
             `New On-Duty request submitted by student ID ${studentId}`,
             "approval"
           );
+          const io = getIO();
+          io.to(`user_${counsellor.user_id}`).emit("newRequest");
         } else {
           console.warn(
             `Counsellor user_id ${counsellor.user_id} not found in users table. Notification skipped.`

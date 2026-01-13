@@ -1,5 +1,6 @@
 import db from "../../config/db.js";
-import { io } from "../../server.js";
+import { getIO } from "../../config/socket.js";
+
 
 // Fetch notifications for a user
 export const getNotifications = async (req, res) => {
@@ -68,5 +69,6 @@ export const sendNotification = async (userId, message, type = "system") => {
     is_read: 0,
     created_at: new Date(),
   };
+  const io = getIO();
   io.to(`user_${userId}`).emit("newNotification", notification);
 };

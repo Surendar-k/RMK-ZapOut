@@ -12,9 +12,12 @@ import {
 
 import logo from "../../assets/zaplogo.png";
 import { useNotifications } from "../context/NotificationContext.jsx";
+import { useRequestBadge } from "../context/RequestBadgeContext";
 
 /* ================= SIDEBAR ITEM ================= */
 const SidebarItem = ({ icon, label, onClick, active, badge }) => {
+ 
+
   return (
     <button
       onClick={onClick}
@@ -42,7 +45,7 @@ const StaffLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { unreadCount } = useNotifications(); // ✅ get unread notifications
-
+ const { newRequestCount } = useRequestBadge();
   const isActive = (path) => location.pathname === path;
 
   return (
@@ -70,6 +73,7 @@ const StaffLayout = () => {
             label="Requests"
             active={isActive("/staff/requests")}
             onClick={() => navigate("/staff/requests")}
+             badge={newRequestCount}
           />
 
           <SidebarItem

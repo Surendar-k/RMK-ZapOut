@@ -9,7 +9,7 @@ import {
   FileText,
 } from "lucide-react";
 import { fetchStaffRequests, updateRequestStatus } from "../../services/requestService.jsx";
-
+import { useRequestBadge } from "../context/RequestBadgeContext.jsx";
 const glass =
   "bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-xl";
 
@@ -39,7 +39,7 @@ const StaffRequests = () => {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
-
+const { clearRequestBadge } = useRequestBadge();
   /* ================= LOAD REQUESTS ================= */
   const loadRequests = async () => {
     try {
@@ -77,6 +77,7 @@ const StaffRequests = () => {
 
   useEffect(() => {
     if (staffId && role) loadRequests();
+    clearRequestBadge();
   }, [staffId, role]);
 
   /* ================= ACTIONS ================= */

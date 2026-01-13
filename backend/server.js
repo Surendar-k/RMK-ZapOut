@@ -2,7 +2,6 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { createServer } from "http";
-import { Server } from "socket.io";
 
 import authRoutes from "./routes/authRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -16,6 +15,7 @@ import departmentRoutes from "./routes/departmentRoutes.js";
 import adminStudentRoutes from "./routes/adminStudentRoutes.js";
 import staffStudentRoutes from "./routes/staffstudentRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import { initSocket } from "./config/socket.js";
 
 dotenv.config();
 const app = express();
@@ -40,27 +40,11 @@ app.use("/api/notifications", notificationRoutes);
 
 // --- HTTP + Socket.io Setup ---
 const PORT = process.env.PORT || 5000;
+
 const httpServer = createServer(app);
 
-// Socket.io server
-export const io = new Server(httpServer, {
-  cors: { origin: "*" },
-});
-
-// Track connected users
-io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
-
-  // Join user-specific room
-  socket.on("joinRoom", (userId) => {
-    socket.join(`user_${userId}`);
-    console.log(`User ${userId} joined room user_${userId}`);
-  });
-
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
-});
+// initialize socket
+initSocket(httpServer);
 
 httpServer.listen(PORT, () => {
   console.log(`RMK ZapOut backend running on port ${PORT}`);

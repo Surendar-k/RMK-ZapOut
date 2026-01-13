@@ -37,6 +37,7 @@ import AdminNotifications from "./components/Admin_Dashboard/AdminNotifications.
 import AuditLogs from "./components/Admin_Dashboard/AuditLogs.jsx";
 import AdminSettings from "./components/Admin_Dashboard/AdminSettings.jsx";
 import { NotificationProvider } from "./components/context/NotificationContext.jsx";
+import { RequestBadgeProvider } from "./components/context/RequestBadgeContext.jsx";
 
 const App = () => {
   return (
@@ -60,12 +61,17 @@ const App = () => {
       {/* ================= STAFF ================= */}
       <Route path="/staff" element={
         <NotificationProvider>
+          <RequestBadgeProvider>
           <StaffLayout />
+          </RequestBadgeProvider>
         </NotificationProvider>
         }>
         <Route path="dashboard" element={<StaffDashboard />} />
         <Route path="students" element={<Students />} />
-        <Route path="requests" element={<StaffRequests />} />
+        <Route path="requests" element={
+          <StaffRequests />
+
+          } />
         <Route path="history" element={<StaffHistory />} />
         <Route path="notifications" element={<StaffNotifications />} />
         <Route path="need-help" element={<StaffNeedHelp />} />
