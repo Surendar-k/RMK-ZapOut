@@ -1,5 +1,5 @@
 import db from "../config/db.js";
-
+import { sendNotification } from "./notifications/staffNotificationController.js";
 /* ================== STUDENT PROFILE ================== working fine */
 export const getStudentProfile = async (req, res) => {
   const { userId } = req.params;
@@ -26,61 +26,116 @@ export const getStudentProfile = async (req, res) => {
   }
 };
 
-
 /* ================== APPLY ON-DUTY ================== working fine*/
 export const applyOnDuty = async (req, res) => {
-  const { userId, eventType, eventName, college, location, fromDate, toDate } = req.body;
+  const { userId, eventType, eventName, college, location, fromDate, toDate } =
+    req.body;
   const proofFile = req.file ? req.file.filename : null;
 
-  if (!userId || !eventType || !eventName || !college || !location || !fromDate || !toDate) {
+  if (
+    !userId ||
+    !eventType ||
+    !eventName ||
+    !college ||
+    !location ||
+    !fromDate ||
+    !toDate
+  ) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
   try {
+    // 1️⃣ Verify user
     const [userRows] = await db.query(
-      `SELECT id, role FROM users WHERE id = ? AND is_active = 1`,
+      "SELECT id, role FROM users WHERE id = ? AND is_active = 1",
       [userId]
     );
 
-    if (userRows.length === 0) return res.status(404).json({ message: "User not found" });
-    if (userRows[0].role !== "STUDENT") return res.status(403).json({ message: "Only students can apply" });
+    if (userRows.length === 0)
+      return res.status(404).json({ message: "User not found" });
+    if (userRows[0].role !== "STUDENT")
+      return res.status(403).json({ message: "Only students can apply" });
 
+    // 2️⃣ Get student record
     const [studentRows] = await db.query(
-      `SELECT id FROM students WHERE user_id = ?`,
+      "SELECT * FROM students WHERE user_id = ?",
       [userId]
     );
+    if (studentRows.length === 0)
+      return res.status(404).json({ message: "Student record missing" });
 
-    if (studentRows.length === 0) return res.status(404).json({ message: "Student record missing" });
-
-    const studentId = studentRows[0].id;
+    const student = studentRows[0];
+    const studentId = student.id;
     const from = new Date(fromDate);
     const to = new Date(toDate);
 
-    if (to < from) return res.status(400).json({ message: "Invalid date range" });
-
+    if (to < from)
+      return res.status(400).json({ message: "Invalid date range" });
     const totalDays = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
 
-    // 1️⃣ Insert into main requests table
+    // 3️⃣ Insert into requests table
     const [requestResult] = await db.query(
-      `INSERT INTO requests (student_id, request_type) VALUES (?, 'ON_DUTY')`,
+      "INSERT INTO requests (student_id, request_type) VALUES (?, 'ON_DUTY')",
       [studentId]
     );
-
     const requestId = requestResult.insertId;
 
-    // 2️⃣ Insert into on_duty_details table
+    // 4️⃣ Insert into on_duty_details table
     await db.query(
       `INSERT INTO on_duty_details
       (request_id, event_type, event_name, college, location, proof_file, from_date, to_date, total_days)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [requestId, eventType, eventName, college, location, proofFile, fromDate, toDate, totalDays]
+      [
+        requestId,
+        eventType,
+        eventName,
+        college,
+        location,
+        proofFile,
+        fromDate,
+        toDate,
+        totalDays,
+      ]
     );
 
-    res.status(201).json({ message: "On-Duty applied successfully", requestId });
+    // 5️⃣ Notify counsellor
+    if (student.counsellor_id) {
+      const [cRows] = await db.query("SELECT * FROM counsellors WHERE id = ?", [
+        student.counsellor_id,
+      ]);
 
+      if (cRows.length > 0) {
+        const counsellor = cRows[0];
+
+        // Make sure the counsellor exists in users table
+        const [userCheck] = await db.query(
+          "SELECT id FROM users WHERE id = ?",
+          [counsellor.user_id]
+        );
+
+        if (userCheck.length > 0) {
+          await sendNotification(
+            counsellor.user_id,
+            `New On-Duty request submitted by student ID ${studentId}`,
+            "approval"
+          );
+        } else {
+          console.warn(
+            `Counsellor user_id ${counsellor.user_id} not found in users table. Notification skipped.`
+          );
+        }
+      } else {
+        console.warn("Counsellor record not found. Notification skipped.");
+      }
+    } else {
+      console.warn("Student has no counsellor assigned. Notification skipped.");
+    }
+
+    res
+      .status(201)
+      .json({ message: "On-Duty applied successfully", requestId });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
-

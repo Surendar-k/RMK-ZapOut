@@ -36,6 +36,7 @@ import AdminReports from "./components/Admin_Dashboard/AdminReports.jsx";
 import AdminNotifications from "./components/Admin_Dashboard/AdminNotifications.jsx";
 import AuditLogs from "./components/Admin_Dashboard/AuditLogs.jsx";
 import AdminSettings from "./components/Admin_Dashboard/AdminSettings.jsx";
+import { NotificationProvider } from "./components/context/NotificationContext.jsx";
 
 const App = () => {
   return (
@@ -57,7 +58,11 @@ const App = () => {
       </Route>
 
       {/* ================= STAFF ================= */}
-      <Route path="/staff" element={<StaffLayout />}>
+      <Route path="/staff" element={
+        <NotificationProvider>
+          <StaffLayout />
+        </NotificationProvider>
+        }>
         <Route path="dashboard" element={<StaffDashboard />} />
         <Route path="students" element={<Students />} />
         <Route path="requests" element={<StaffRequests />} />

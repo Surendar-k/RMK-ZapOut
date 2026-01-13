@@ -11,9 +11,10 @@ import {
 } from "lucide-react";
 
 import logo from "../../assets/zaplogo.png";
+import { useNotifications } from "../context/NotificationContext.jsx";
 
 /* ================= SIDEBAR ITEM ================= */
-const SidebarItem = ({ icon, label, onClick, active }) => {
+const SidebarItem = ({ icon, label, onClick, active, badge }) => {
   return (
     <button
       onClick={onClick}
@@ -24,7 +25,14 @@ const SidebarItem = ({ icon, label, onClick, active }) => {
             : "text-white/70 hover:bg-white/5 hover:text-white"
         }`}
     >
-      <span className={active ? "text-[#53cf57]" : ""}>{icon}</span>
+      <span className={active ? "text-[#53cf57]" : "relative"}>
+        {icon}
+        {badge > 0 && (
+          <span className="absolute -top-2 -right-2 w-4 h-4 bg-red-500 text-[10px] text-white font-semibold flex items-center justify-center rounded-full">
+            {badge}
+          </span>
+        )}
+      </span>
       <span className="text-sm font-medium">{label}</span>
     </button>
   );
@@ -33,6 +41,7 @@ const SidebarItem = ({ icon, label, onClick, active }) => {
 const StaffLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { unreadCount } = useNotifications(); // ✅ get unread notifications
 
   const isActive = (path) => location.pathname === path;
 
@@ -75,6 +84,7 @@ const StaffLayout = () => {
             label="Notifications"
             active={isActive("/staff/notifications")}
             onClick={() => navigate("/staff/notifications")}
+            badge={unreadCount} // ✅ add badge here
           />
 
           <SidebarItem
