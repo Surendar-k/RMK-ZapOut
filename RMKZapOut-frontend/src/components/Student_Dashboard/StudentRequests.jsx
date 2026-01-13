@@ -216,42 +216,62 @@ const StudentRequests = () => {
               </div>
 
               {/* APPROVAL TRACK */}
+{/* APPROVAL TRACK */}
+{/* APPROVAL TRACK */}
 <div className="mt-6">
   <div className="flex items-start">
-    {["SUBMITTED", ...STAGES].map((stage, index) => {
-      const stageOrder = ["SUBMITTED", ...STAGES];
-      const rejectedIndex = r.status === "REJECTED" ? stageOrder.indexOf(r.current_stage) : -1;
+
+    {/* SUBMITTED STEP */}
+    <div className="flex flex-1 items-center">
+      <div className="flex flex-col items-center">
+        <div
+          className={`w-4 h-4 rounded-full border-2 ${
+            r.status === "SUBMITTED" || r.status !== "REJECTED"
+              ? "bg-green-400 border-green-400"
+              : "bg-green-400 border-green-400"
+          }`}
+        />
+        <p className="mt-2 text-xs font-semibold text-green-400 text-center">
+          SUBMITTED
+        </p>
+      </div>
+
+      <div className="flex-1 h-1 mx-2 mt-2 bg-green-400" />
+    </div>
+
+    {/* OTHER STAGES */}
+    {STAGES.map((stage, index) => {
+      const rejectedIndex =
+        r.status === "REJECTED" ? STAGES.indexOf(r.rejected_by) : -1;
+
       const currentIndex =
         r.status === "SUBMITTED"
-          ? 0
-          : stageOrder.indexOf(r.current_stage);
+          ? -1
+          : STAGES.indexOf(r.current_stage);
 
       let isCompleted = false;
       let isCurrent = false;
       let isRejected = false;
 
       if (r.status === "REJECTED") {
-        if (index < rejectedIndex) isCompleted = true; // approved before rejection
+        if (index < rejectedIndex) isCompleted = true;
         else if (index === rejectedIndex) isRejected = true;
-      } else if (r.status === "SUBMITTED") {
-        isCompleted = index === 0;
-        isCurrent = index === 1;
       } else {
-        isCompleted = index < currentIndex;
-        isCurrent = index === currentIndex;
+        if (index < currentIndex) isCompleted = true;
+        else if (index === currentIndex) isCurrent = true;
       }
 
       return (
         <div key={stage} className="flex flex-1 items-center">
           <div className="flex flex-col items-center">
             <div
-              className={`w-5 h-5 rounded-full border-2 ${
+              className={`w-4 h-4 rounded-full border-2 ${
                 isRejected
                   ? "bg-red-500 border-red-500"
                   : isCompleted
                   ? "bg-green-400 border-green-400"
                   : isCurrent
-                  ? "border-[#00d3d1]"
+                  ? "border-[#00d3d1] bg-[#00d3d1]"
                   : "border-white/30"
               }`}
             />
@@ -266,11 +286,11 @@ const StudentRequests = () => {
                   : "text-gray-400"
               }`}
             >
-              {stage === "SUBMITTED" ? "Submitted" : stage}
+              {stage}
             </p>
           </div>
 
-          {index < STAGES.length && (
+          {index < STAGES.length - 1 && (
             <div
               className={`flex-1 h-1 mx-2 mt-2 ${
                 isCompleted ? "bg-green-400" : "bg-white/30"
@@ -286,6 +306,8 @@ const StudentRequests = () => {
     Submitted → Counsellor → Coordinator → HOD → Warden
   </p>
 </div>
+
+
 
 
 
