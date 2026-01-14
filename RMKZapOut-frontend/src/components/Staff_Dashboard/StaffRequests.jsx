@@ -30,7 +30,7 @@ const StaffRequests = () => {
   const user = JSON.parse(localStorage.getItem("user"));
   const staffId = user?.id;
   const role = user?.role;
-  const coordinatorYear = user?.year; // coordinator year
+  const coordinatorYear = user?.year;
 
   const [filter, setFilter] = useState("All");
   const [requests, setRequests] = useState([]);
