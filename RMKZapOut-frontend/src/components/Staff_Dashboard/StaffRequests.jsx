@@ -40,7 +40,7 @@ const StaffRequests = () => {
   const [selectedRequestId, setSelectedRequestId] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
 const { clearRequestBadge } = useRequestBadge();
-  /* ================= LOAD REQUESTS ================= */
+  
   const loadRequests = async () => {
     try {
       setLoading(true);
