@@ -1,4 +1,7 @@
 import db from "../config/db.js";
+import { getIO } from "../config/socket.js";
+
+import { sendNotification } from "./notifications/staffNotificationController.js";  
 
 // ================= FETCH STUDENT INFO =================working fine
 export const getStudentInfo = async (req, res) => {
@@ -34,7 +37,7 @@ export const applyGatepass = async (req, res) => {
   const {
     student_id,
     from_date,
-    to_date, // Expected Return
+    to_date,
     out_time,
     reason,
     guardian_name,
@@ -43,52 +46,86 @@ export const applyGatepass = async (req, res) => {
   } = req.body;
 
   try {
-    // Get student DB ID
+    /* ================= STUDENT ================= */
     const [studentRows] = await db.query(
-      `SELECT id FROM students WHERE user_id = ?`,
+      `SELECT id, counsellor_id FROM students WHERE user_id = ?`,
       [student_id]
     );
-    if (!studentRows.length) return res.status(404).json({ message: "Student not found" });
+
+    if (!studentRows.length)
+      return res.status(404).json({ message: "Student not found" });
 
     const studentDbId = studentRows[0].id;
+    const counsellorId = studentRows[0].counsellor_id;
 
-    // Insert into requests table
+    /* ================= REQUEST ================= */
     const [requestResult] = await db.query(
-      `INSERT INTO requests (student_id, request_type, status)
-       VALUES (?, 'GATE_PASS', 'SUBMITTED')`,
+      `INSERT INTO requests 
+       (student_id, request_type, status, current_stage)
+       VALUES (?, 'GATE_PASS', 'SUBMITTED', 'COUNSELLOR')`,
       [studentDbId]
     );
+
     const requestId = requestResult.insertId;
 
-    // Calculate total_days
-    const totalDays = Math.floor(
-      (new Date(to_date) - new Date(from_date)) / (1000 * 60 * 60 * 24)
-    ) + 1;
+    /* ================= GATE PASS DETAILS ================= */
+    const totalDays =
+      Math.floor(
+        (new Date(to_date) - new Date(from_date)) /
+          (1000 * 60 * 60 * 24)
+      ) + 1;
 
-    // Insert into gate_pass_details
-   // Insert into gate_pass_details
-await db.query(
-  `INSERT INTO gate_pass_details
-   (request_id, reason, out_time, from_date, to_date, in_time, time_of_leaving, total_days)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-  [requestId, reason, out_time, from_date, to_date, null, out_time, totalDays]
-);
-
-
-    // Update guardian info
     await db.query(
-      `UPDATE students 
+      `INSERT INTO gate_pass_details
+       (request_id, reason, out_time, from_date, to_date, in_time, time_of_leaving, total_days)
+       VALUES (?, ?, ?, ?, ?, NULL, ?, ?)`,
+      [requestId, reason, out_time, from_date, to_date, out_time, totalDays]
+    );
+
+    /* ================= UPDATE GUARDIAN ================= */
+    await db.query(
+      `UPDATE students
        SET guardian_name = ?, guardian_mobile = ?, guardian_address = ?
        WHERE id = ?`,
       [guardian_name, guardian_mobile, guardian_address, studentDbId]
     );
 
-    res.status(201).json({ message: "Gatepass submitted successfully", requestId });
+    /* ================= NOTIFY COUNSELLOR ================= */
+    if (counsellorId) {
+      const [counsellorRows] = await db.query(
+        `SELECT user_id FROM counsellors WHERE id = ?`,
+        [counsellorId]
+      );
+
+      if (counsellorRows.length) {
+        const counsellorUserId = counsellorRows[0].user_id;
+
+        // Save notification in DB
+        await sendNotification(
+          counsellorUserId,
+          "New Gate Pass request submitted",
+          "approval"
+        );
+
+        // 🔥 SOCKET EVENT FOR BADGE
+        const io = getIO();
+        io.to(`user_${counsellorUserId}`).emit("newRequest", {
+          requestType: "GATE_PASS",
+          requestId,
+        });
+      }
+    }
+
+    res.status(201).json({
+      message: "Gate Pass submitted successfully",
+      requestId,
+    });
   } catch (err) {
     console.error("Gatepass submission error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 
