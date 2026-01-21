@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
-
 import socket from "../context/socket.js";
+
 const RequestBadgeContext = createContext(null);
 
 export const RequestBadgeProvider = ({ children }) => {
@@ -8,22 +8,23 @@ export const RequestBadgeProvider = ({ children }) => {
 
   const user = JSON.parse(localStorage.getItem("user"));
   const staffId = user?.id;
+
   useEffect(() => {
     if (!staffId) return;
 
-    // ✅ connect once
-    if (!socket.connected) {
-      socket.connect();
-    }
+    if (!socket.connected) socket.connect();
 
     socket.emit("joinRoom", staffId);
 
-    socket.on("newRequest", () => {
+    const handleNewRequest = () => {
+      console.log("New request received!"); // debug
       setNewRequestCount((prev) => prev + 1);
-    });
+    };
+
+    socket.on("newRequest", handleNewRequest);
 
     return () => {
-      socket.off("newRequest");
+      socket.off("newRequest", handleNewRequest);
     };
   }, [staffId]);
 
@@ -43,8 +44,6 @@ export const RequestBadgeProvider = ({ children }) => {
 // eslint-disable-next-line react-refresh/only-export-components
 export const useRequestBadge = () => {
   const ctx = useContext(RequestBadgeContext);
-  if (!ctx) {
-    throw new Error("useRequestBadge must be used inside RequestBadgeProvider");
-  }
+  if (!ctx) throw new Error("useRequestBadge must be used inside RequestBadgeProvider");
   return ctx;
 };

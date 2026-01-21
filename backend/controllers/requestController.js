@@ -3,83 +3,35 @@ import { getIO } from "../config/socket.js";
 
 import { sendNotification } from "./notifications/staffNotificationController.js";
 
-export const notifyNextApprovers = async (
-  nextStage,
-  reqRow,
-  requestId
-) => {
+export const notifyNextApprovers = async (nextStage, reqRow, requestId, type = "approval") => {
+  const io = getIO();
+
   let users = [];
-const io = getIO();
 
-/* ================= NOTIFY NEXT STAGE ================= */
-
-// ▶ Counsellor → Coordinator
-if (nextStage === "COORDINATOR") {
-  const [[coord]] = await db.query(
-    `SELECT c.user_id
-     FROM coordinators c
-     WHERE c.department_id = ?
-       AND c.year = ?`,
-    [reqRow.department_id, reqRow.student_year]
-  );
-
-  if (coord?.user_id) {
-    await sendNotification(
-      coord.user_id,
-      "New request pending your approval",
-      "approval"
+  if (nextStage === "COORDINATOR") {
+    const [[coord]] = await db.query(
+      `SELECT c.user_id FROM coordinators c WHERE c.department_id = ? AND c.year = ?`,
+      [reqRow.department_id, reqRow.student_year]
     );
-    io.to(`user_${coord.user_id}`).emit("newRequest");
+    if (coord?.user_id) users.push(coord.user_id);
+  } else if (nextStage === "HOD") {
+    const [[hod]] = await db.query(
+      `SELECT h.user_id FROM hods h WHERE h.department_id = ?`,
+      [reqRow.department_id]
+    );
+    if (hod?.user_id) users.push(hod.user_id);
+  } else if (nextStage === "WARDEN") {
+    const [[warden]] = await db.query(`SELECT user_id FROM wardens LIMIT 1`);
+    if (warden?.user_id) users.push(warden.user_id);
   }
-}
 
-// ▶ Coordinator → HOD  ✅ THIS WAS MISSING
-if (nextStage === "HOD") {
-  const [[hod]] = await db.query(
-    `SELECT h.user_id
-     FROM hods h
-     WHERE h.department_id = ?`,
-    [reqRow.department_id]
-  );
-
-  if (hod?.user_id) {
-    await sendNotification(
-      hod.user_id,
-      "New request pending HOD approval",
-      "approval"
-    );
-    io.to(`user_${hod.user_id}`).emit("newRequest"); // 🔥 BADGE FIX
-  }
-}
-
-// ▶ HOD → Warden
-if (nextStage === "WARDEN") {
-  const [[warden]] = await db.query(
-    `SELECT user_id FROM wardens LIMIT 1`
-  );
-
-  if (warden?.user_id) {
-    await sendNotification(
-      warden.user_id,
-      "New request pending Warden approval",
-      "approval"
-    );
-    io.to(`user_${warden.user_id}`).emit("newRequest");
-  }
-}
-
-  for (const u of users) {
-    // 🔔 notification
-    await sendNotification(
-      u.user_id,
-      "New request pending your approval",
-      "approval"
-    );
-
-    // 🔴 REQUEST BADGE EVENT (THIS WAS MISSING)
-    io.to(`user_${u.user_id}`).emit("newRequest");
+  // send notification & badge for all users
+  for (const userId of users) {
+    await sendNotification(userId, "New request pending your approval", type);
+    io.to(`user_${userId}`).emit("newRequest");
   }
 };
+
 
 /* =====================================================
    STUDENT SIDE

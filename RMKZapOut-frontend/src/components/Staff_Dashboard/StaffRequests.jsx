@@ -68,6 +68,8 @@ const { clearRequestBadge } = useRequestBadge();
 
         return { ...r, actionable };
       });
+      data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
 
       setRequests(data);
     } finally {
