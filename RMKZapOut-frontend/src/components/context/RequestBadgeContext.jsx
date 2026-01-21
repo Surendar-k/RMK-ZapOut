@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { io } from "socket.io-client";
 
+import socket from "../context/socket.js";
 const RequestBadgeContext = createContext(null);
 
 export const RequestBadgeProvider = ({ children }) => {
@@ -8,20 +8,23 @@ export const RequestBadgeProvider = ({ children }) => {
 
   const user = JSON.parse(localStorage.getItem("user"));
   const staffId = user?.id;
-
   useEffect(() => {
     if (!staffId) return;
 
-    const socket = io("http://localhost:5000");
+    // ✅ connect once
+    if (!socket.connected) {
+      socket.connect();
+    }
 
     socket.emit("joinRoom", staffId);
 
-    /* ✅ ONLY for new requests */
     socket.on("newRequest", () => {
       setNewRequestCount((prev) => prev + 1);
     });
 
-    return () => socket.disconnect();
+    return () => {
+      socket.off("newRequest");
+    };
   }, [staffId]);
 
   const clearRequestBadge = () => {

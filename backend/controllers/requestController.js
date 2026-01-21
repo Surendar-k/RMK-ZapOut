@@ -1,4 +1,85 @@
 import db from "../config/db.js";
+import { getIO } from "../config/socket.js";
+
+import { sendNotification } from "./notifications/staffNotificationController.js";
+
+export const notifyNextApprovers = async (
+  nextStage,
+  reqRow,
+  requestId
+) => {
+  let users = [];
+const io = getIO();
+
+/* ================= NOTIFY NEXT STAGE ================= */
+
+// ▶ Counsellor → Coordinator
+if (nextStage === "COORDINATOR") {
+  const [[coord]] = await db.query(
+    `SELECT c.user_id
+     FROM coordinators c
+     WHERE c.department_id = ?
+       AND c.year = ?`,
+    [reqRow.department_id, reqRow.student_year]
+  );
+
+  if (coord?.user_id) {
+    await sendNotification(
+      coord.user_id,
+      "New request pending your approval",
+      "approval"
+    );
+    io.to(`user_${coord.user_id}`).emit("newRequest");
+  }
+}
+
+// ▶ Coordinator → HOD  ✅ THIS WAS MISSING
+if (nextStage === "HOD") {
+  const [[hod]] = await db.query(
+    `SELECT h.user_id
+     FROM hods h
+     WHERE h.department_id = ?`,
+    [reqRow.department_id]
+  );
+
+  if (hod?.user_id) {
+    await sendNotification(
+      hod.user_id,
+      "New request pending HOD approval",
+      "approval"
+    );
+    io.to(`user_${hod.user_id}`).emit("newRequest"); // 🔥 BADGE FIX
+  }
+}
+
+// ▶ HOD → Warden
+if (nextStage === "WARDEN") {
+  const [[warden]] = await db.query(
+    `SELECT user_id FROM wardens LIMIT 1`
+  );
+
+  if (warden?.user_id) {
+    await sendNotification(
+      warden.user_id,
+      "New request pending Warden approval",
+      "approval"
+    );
+    io.to(`user_${warden.user_id}`).emit("newRequest");
+  }
+}
+
+  for (const u of users) {
+    // 🔔 notification
+    await sendNotification(
+      u.user_id,
+      "New request pending your approval",
+      "approval"
+    );
+
+    // 🔴 REQUEST BADGE EVENT (THIS WAS MISSING)
+    io.to(`user_${u.user_id}`).emit("newRequest");
+  }
+};
 
 /* =====================================================
    STUDENT SIDE
@@ -11,7 +92,7 @@ export const getAllStudentRequests = async (req, res) => {
   try {
     const [studentRows] = await db.query(
       `SELECT id FROM students WHERE user_id = ?`,
-      [userId]
+      [userId],
     );
 
     if (!studentRows.length) {
@@ -51,7 +132,7 @@ export const getAllStudentRequests = async (req, res) => {
       LEFT JOIN gate_pass_details gp ON gp.request_id = r.id
       WHERE r.student_id = ?
       ORDER BY r.created_at DESC`,
-      [studentId]
+      [studentId],
     );
 
     res.json({ requests });
@@ -68,7 +149,7 @@ export const cancelRequest = async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT status, request_type FROM requests WHERE id = ?`,
-      [requestId]
+      [requestId],
     );
 
     if (!rows.length) {
@@ -109,7 +190,7 @@ export const updateRequest = async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT status, request_type FROM requests WHERE id = ?`,
-      [requestId]
+      [requestId],
     );
 
     if (!rows.length) {
@@ -124,7 +205,7 @@ export const updateRequest = async (req, res) => {
       const totalDays =
         Math.ceil(
           (new Date(data.toDate) - new Date(data.fromDate)) /
-            (1000 * 60 * 60 * 24)
+            (1000 * 60 * 60 * 24),
         ) + 1;
 
       await db.query(
@@ -148,13 +229,13 @@ export const updateRequest = async (req, res) => {
           data.toDate,
           totalDays,
           requestId,
-        ]
+        ],
       );
     } else {
       const totalDays =
         Math.ceil(
           (new Date(data.toDate) - new Date(data.fromDate)) /
-            (1000 * 60 * 60 * 24)
+            (1000 * 60 * 60 * 24),
         ) + 1;
 
       await db.query(
@@ -174,7 +255,7 @@ export const updateRequest = async (req, res) => {
           data.toDate || null,
           totalDays || null,
           requestId,
-        ]
+        ],
       );
     }
 
@@ -251,8 +332,7 @@ export const getStaffRequests = async (req, res) => {
       `;
       params = [staffId];
     } else if (role === "COORDINATOR") {
-
-    /* ================= COORDINATOR ================= */
+      /* ================= COORDINATOR ================= */
       query = `
     ${baseSelect}
     WHERE
@@ -294,8 +374,7 @@ export const getStaffRequests = async (req, res) => {
   `;
       params = [staffId, staffId, staffId];
     } else if (role === "HOD") {
-
-    /* ================= HOD ================= */
+      /* ================= HOD ================= */
       query = `
         ${baseSelect}
         JOIN hods h ON h.user_id = ?
@@ -305,8 +384,7 @@ export const getStaffRequests = async (req, res) => {
       `;
       params = [staffId];
     } else if (role === "WARDEN") {
-
-    /* ================= WARDEN ================= */
+      /* ================= WARDEN ================= */
       query = `
         ${baseSelect}
         WHERE r.current_stage = 'WARDEN'
@@ -369,7 +447,7 @@ export const updateRequestStatus = async (req, res) => {
        JOIN students s ON r.student_id = s.id
        LEFT JOIN counsellors cs ON cs.id = s.counsellor_id
        WHERE r.id = ?`,
-      [requestId]
+      [requestId],
     );
 
     if (!reqRow) return res.status(404).json({ message: "Request not found" });
@@ -386,7 +464,7 @@ export const updateRequestStatus = async (req, res) => {
              rejection_reason=?,
              current_stage='COUNSELLOR'
          WHERE id=?`,
-        [role, rejectionReason, requestId]
+        [role, rejectionReason, requestId],
       );
 
       return res.json({ message: "Rejected successfully" });
@@ -399,8 +477,7 @@ export const updateRequestStatus = async (req, res) => {
         nextStage = "COORDINATOR";
         nextStatus = "COUNSELLOR_APPROVED";
       } else if (role === "COORDINATOR") {
-
-      /* ---------------- COORDINATOR ---------------- */
+        /* ---------------- COORDINATOR ---------------- */
         if (reqRow.current_stage === "COORDINATOR") {
           // Coordinator approving at their own stage
           nextStage = "HOD";
@@ -409,7 +486,7 @@ export const updateRequestStatus = async (req, res) => {
           // Coordinator approving a counsellor-stage request
           const [[coord]] = await db.query(
             `SELECT id, year, department_id FROM coordinators WHERE user_id=?`,
-            [staffId]
+            [staffId],
           );
 
           if (!coord)
@@ -438,13 +515,11 @@ export const updateRequestStatus = async (req, res) => {
           }
         }
       } else if (role === "HOD" && reqRow.current_stage === "HOD") {
-
-      /* ---------------- HOD ---------------- */
+        /* ---------------- HOD ---------------- */
         nextStage = "WARDEN";
         nextStatus = "HOD_APPROVED";
       } else if (role === "WARDEN" && reqRow.current_stage === "WARDEN") {
-
-      /* ---------------- WARDEN ---------------- */
+        /* ---------------- WARDEN ---------------- */
         nextStage = "COMPLETED";
         nextStatus = "WARDEN_APPROVED";
       }
@@ -459,8 +534,9 @@ export const updateRequestStatus = async (req, res) => {
          SET status=?,
              current_stage=?
          WHERE id=?`,
-        [nextStatus, nextStage, requestId]
+        [nextStatus, nextStage, requestId],
       );
+      await notifyNextApprovers(nextStage, reqRow, requestId);
 
       return res.json({ message: "Approved successfully" });
     }
