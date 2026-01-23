@@ -1,7 +1,7 @@
 import db from "../config/db.js";
 import { getIO } from "../config/socket.js";
 
-import { sendNotification } from "./notifications/staffNotificationController.js";
+import { sendStudentNotification } from "./notifications/staffNotificationController.js";
 /* ================== STUDENT PROFILE ================== working fine */
 export const getStudentProfile = async (req, res) => {
   const { userId } = req.params;
@@ -15,7 +15,7 @@ export const getStudentProfile = async (req, res) => {
        JOIN students s ON s.user_id = u.id
        LEFT JOIN departments d ON d.id = s.department_id
        WHERE u.id = ?`,
-      [userId]
+      [userId],
     );
 
     if (rows.length === 0)
@@ -50,7 +50,7 @@ export const applyOnDuty = async (req, res) => {
     // 1️⃣ Verify user
     const [userRows] = await db.query(
       "SELECT id, role FROM users WHERE id = ? AND is_active = 1",
-      [userId]
+      [userId],
     );
 
     if (userRows.length === 0)
@@ -61,7 +61,7 @@ export const applyOnDuty = async (req, res) => {
     // 2️⃣ Get student record
     const [studentRows] = await db.query(
       "SELECT * FROM students WHERE user_id = ?",
-      [userId]
+      [userId],
     );
     if (studentRows.length === 0)
       return res.status(404).json({ message: "Student record missing" });
@@ -78,7 +78,7 @@ export const applyOnDuty = async (req, res) => {
     // 3️⃣ Insert into requests table
     const [requestResult] = await db.query(
       "INSERT INTO requests (student_id, request_type) VALUES (?, 'ON_DUTY')",
-      [studentId]
+      [studentId],
     );
     const requestId = requestResult.insertId;
 
@@ -97,7 +97,7 @@ export const applyOnDuty = async (req, res) => {
         fromDate,
         toDate,
         totalDays,
-      ]
+      ],
     );
 
     // 5️⃣ Notify counsellor
@@ -112,20 +112,23 @@ export const applyOnDuty = async (req, res) => {
         // Make sure the counsellor exists in users table
         const [userCheck] = await db.query(
           "SELECT id FROM users WHERE id = ?",
-          [counsellor.user_id]
+          [counsellor.user_id],
         );
 
+
         if (userCheck.length > 0) {
-          await sendNotification(
-            counsellor.user_id,
-            `New On-Duty request submitted by student ID ${studentId}`,
-            "approval"
-          );
+          await sendStudentNotification(
+  counsellor.user_id, // receiver (staff)
+  userId,             // student userId
+  "New On-Duty request submitted",
+  "approval"
+);
+
           const io = getIO();
           io.to(`user_${counsellor.user_id}`).emit("newRequest");
         } else {
           console.warn(
-            `Counsellor user_id ${counsellor.user_id} not found in users table. Notification skipped.`
+            `Counsellor user_id ${counsellor.user_id} not found in users table. Notification skipped.`,
           );
         }
       } else {

@@ -1,7 +1,7 @@
 import db from "../config/db.js";
 import { getIO } from "../config/socket.js";
 
-import { sendNotification } from "./notifications/staffNotificationController.js";  
+import { sendStudentNotification } from "./notifications/staffNotificationController.js";  
 
 // ================= FETCH STUDENT INFO =================working fine
 export const getStudentInfo = async (req, res) => {
@@ -101,8 +101,9 @@ export const applyGatepass = async (req, res) => {
         const counsellorUserId = counsellorRows[0].user_id;
 
         // Save notification in DB
-        await sendNotification(
+        await sendStudentNotification(
           counsellorUserId,
+          student_id,
           "New Gate Pass request submitted",
           "approval"
         );

@@ -1,7 +1,7 @@
 import db from "../config/db.js";
 import { getIO } from "../config/socket.js";
 
-import { sendNotification } from "./notifications/staffNotificationController.js";
+import { sendStudentNotification } from "./notifications/staffNotificationController.js";
 
 export const notifyNextApprovers = async (nextStage, reqRow, requestId, type = "approval") => {
   const io = getIO();
@@ -25,11 +25,17 @@ export const notifyNextApprovers = async (nextStage, reqRow, requestId, type = "
     if (warden?.user_id) users.push(warden.user_id);
   }
 
-  // send notification & badge for all users
-  for (const userId of users) {
-    await sendNotification(userId, "New request pending your approval", type);
-    io.to(`user_${userId}`).emit("newRequest");
-  }
+ for (const userId of users) {
+  await sendStudentNotification(
+    userId,                    // receiver (staff)
+    reqRow.student_user_id,   // student user id
+    "New request pending your approval",
+    type
+  );
+
+  io.to(`user_${userId}`).emit("newRequest");
+}
+
 };
 
 
@@ -395,6 +401,7 @@ export const updateRequestStatus = async (req, res) => {
          s.counsellor_id,
          cs.user_id AS counsellor_user_id,
          s.department_id
+         s.user_id AS student_user_id  
        FROM requests r
        JOIN students s ON r.student_id = s.id
        LEFT JOIN counsellors cs ON cs.id = s.counsellor_id
