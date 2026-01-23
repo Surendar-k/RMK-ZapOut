@@ -104,8 +104,8 @@ export const applyGatepass = async (req, res) => {
         await sendStudentNotification(
           counsellorUserId,
           student_id,
-          "New Gate Pass request submitted",
-          "approval"
+          null,
+          "gate-pass"
         );
 
         // 🔥 SOCKET EVENT FOR BADGE

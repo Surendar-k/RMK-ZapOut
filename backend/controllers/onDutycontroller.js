@@ -120,8 +120,8 @@ export const applyOnDuty = async (req, res) => {
           await sendStudentNotification(
   counsellor.user_id, // receiver (staff)
   userId,             // student userId
-  "New On-Duty request submitted",
-  "approval"
+  null,
+  "on-duty"
 );
 
           const io = getIO();

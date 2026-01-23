@@ -3,40 +3,74 @@ import { getIO } from "../config/socket.js";
 
 import { sendStudentNotification } from "./notifications/staffNotificationController.js";
 
-export const notifyNextApprovers = async (nextStage, reqRow, requestId, type = "approval") => {
+export const notifyNextApprovers = async (nextStage, reqRow, requestId, approverId) => {
   const io = getIO();
-
   let users = [];
+  let actionText = "";
 
+  // Determine receivers and action text
   if (nextStage === "COORDINATOR") {
-    const [[coord]] = await db.query(
-      `SELECT c.user_id FROM coordinators c WHERE c.department_id = ? AND c.year = ?`,
+    const [coordRows] = await db.query(
+      `SELECT c.user_id, u.username
+       FROM coordinators c
+       JOIN users u ON u.id = c.user_id
+       WHERE c.department_id = ? AND c.year = ?`,
       [reqRow.department_id, reqRow.student_year]
     );
-    if (coord?.user_id) users.push(coord.user_id);
+
+    users = coordRows.map(c => c.user_id);
+
+    // Get counsellor name
+    const [[counsellor]] = await db.query(
+      `SELECT u.username 
+       FROM users u 
+       WHERE u.id = ?`,
+      [reqRow.counsellor_user_id]
+    );
+
+    
   } else if (nextStage === "HOD") {
-    const [[hod]] = await db.query(
-      `SELECT h.user_id FROM hods h WHERE h.department_id = ?`,
+    const [hodRows] = await db.query(
+      `SELECT h.user_id, u.username
+       FROM hods h
+       JOIN users u ON u.id = h.user_id
+       WHERE h.department_id = ?`,
       [reqRow.department_id]
     );
-    if (hod?.user_id) users.push(hod.user_id);
+
+    users = hodRows.map(h => h.user_id);
+
+    // Get coordinator name
+    const [[coordinator]] = await db.query(
+      `SELECT u.username 
+       FROM users u
+       WHERE u.id = ?`,
+      [approverId]
+    );
+
   } else if (nextStage === "WARDEN") {
     const [[warden]] = await db.query(`SELECT user_id FROM wardens LIMIT 1`);
     if (warden?.user_id) users.push(warden.user_id);
+
+    actionText = "HOD approved the request";
   }
 
- for (const userId of users) {
-  await sendStudentNotification(
-    userId,                    // receiver (staff)
-    reqRow.student_user_id,   // student user id
-    "New request pending your approval",
-    type
-  );
+  // Send notification to all receivers
+  for (const userId of users) {
+    await sendStudentNotification(
+      userId,                     // coordinator / HOD
+      reqRow.student_user_id,     // original student
+      actionText,                 // who forwarded
+     reqRow.request_type === "ON_DUTY" ? "on-duty" : "gate-pass"
+  
+    );
 
-  io.to(`user_${userId}`).emit("newRequest");
-}
-
+    io.to(`user_${userId}`).emit("newRequest");
+  }
 };
+
+
+
 
 
 /* =====================================================
@@ -394,20 +428,22 @@ export const updateRequestStatus = async (req, res) => {
 
   try {
     // Fetch current request info including student and counsellor
-    const [[reqRow]] = await db.query(
-      `SELECT 
-         r.current_stage, 
-         s.year_of_study AS student_year,
-         s.counsellor_id,
-         cs.user_id AS counsellor_user_id,
-         s.department_id
-         s.user_id AS student_user_id  
-       FROM requests r
-       JOIN students s ON r.student_id = s.id
-       LEFT JOIN counsellors cs ON cs.id = s.counsellor_id
-       WHERE r.id = ?`,
-      [requestId],
-    );
+   const [[reqRow]] = await db.query(
+  `SELECT 
+     r.current_stage, 
+     r.request_type,
+     s.year_of_study AS student_year,
+     s.counsellor_id,
+     cs.user_id AS counsellor_user_id,
+     s.department_id,
+     s.user_id AS student_user_id  
+   FROM requests r
+   JOIN students s ON r.student_id = s.id
+   LEFT JOIN counsellors cs ON cs.id = s.counsellor_id
+   WHERE r.id = ?`,
+  [requestId]
+);
+
 
     if (!reqRow) return res.status(404).json({ message: "Request not found" });
 
@@ -495,7 +531,7 @@ export const updateRequestStatus = async (req, res) => {
          WHERE id=?`,
         [nextStatus, nextStage, requestId],
       );
-      await notifyNextApprovers(nextStage, reqRow, requestId);
+      await notifyNextApprovers(nextStage, reqRow, requestId, staffId);
 
       return res.json({ message: "Approved successfully" });
     }
