@@ -15,7 +15,9 @@ import departmentRoutes from "./routes/departmentRoutes.js";
 import adminStudentRoutes from "./routes/adminStudentRoutes.js";
 import staffStudentRoutes from "./routes/staffstudentRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import historyRoutes from "./routes/historyRoutes.js";
 import { initSocket } from "./config/socket.js";
+
 
 dotenv.config();
 const app = express();
@@ -37,6 +39,7 @@ app.use("/api/student/profile", studentProfileRoutes);
 app.use("/api/staff/profile", staffProfileRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/history", historyRoutes);
 
 // --- HTTP + Socket.io Setup ---
 const PORT = process.env.PORT || 5000;
